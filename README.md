@@ -6,7 +6,7 @@ Building `influx-stress` requires the Golang toolchain. If you do not have the G
 please follow the instructions [golang.org/doc/install](https://golang.org/doc/install)
 
 ```sh
-go get -v github.com/influxdata/influx-stress/cmd/...
+go get -v github.com/deltacat/dbstress/cmd/...
 ```
 
 ## Top Level Command

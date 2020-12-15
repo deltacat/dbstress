@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/influxdata/influx-stress/lineprotocol"
-	"github.com/influxdata/influx-stress/point"
-	"github.com/influxdata/influx-stress/stress"
-	"github.com/influxdata/influx-stress/write"
+	"github.com/deltacat/dbstress/lineprotocol"
+	"github.com/deltacat/dbstress/point"
+	"github.com/deltacat/dbstress/stress"
+	"github.com/deltacat/dbstress/write"
 	"github.com/spf13/cobra"
 )
 
@@ -160,7 +160,8 @@ func insertRun(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	RootCmd.AddCommand(insertCmd)
+	rootCmd.AddCommand(insertCmd)
+
 	insertCmd.Flags().StringVarP(&statsHost, "stats-host", "", "http://localhost:8086", "Address of InfluxDB instance where runtime statistics will be recorded")
 	insertCmd.Flags().StringVarP(&statsDB, "stats-db", "", "stress_stats", "Database that statistics will be written to")
 	insertCmd.Flags().BoolVarP(&recordStats, "stats", "", false, "Record runtime statistics")

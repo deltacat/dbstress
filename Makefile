@@ -1,8 +1,10 @@
+include .env
+
 # Go related variables.
 GOBASE		:= $(shell pwd)
 GOBIN		:= $(GOBASE)/build
 PUBDIR     	:= $(GOBASE)/dist
-TESTOUT		:= $(GOBASE)/coverage.out
+TESTOUT		:= $(GOBIN)/coverage.out
 TIMESTAMP	:= "$(shell date --rfc-3339='seconds')"
 PKGS		:= $(shell go list ./... | grep -v /vendor)
 
@@ -35,7 +37,7 @@ build:
 	mkdir -p $(GOBIN)
 	$(GO_ENV) go build $(GO_EXTRA_BUILD_ARGS) \
 		-o $(GOBIN)/$(PROJECTNAME) \
-		$(PROJECTBASE)/cmd/influx-stress/main.go
+		$(PROJECTBASE)/main.go
 	@echo └ done
 
 ## clean: cleanup workspace
@@ -45,6 +47,16 @@ clean:
 	@rm -rf $(GOBIN)
 	@rm -rf $(PUBDIR)
 	@rm -f $(TESTOUT)
+	@echo └ done
+
+## test: running tests
+.PHONY: test
+test: 
+	@echo ┌ running tests
+	@rm -f $(TESTOUT)
+	@go test -p 1 -v \
+		-cover $(PKGS) \
+		-coverprofile $(TESTOUT)
 	@echo └ done
 
 ## lint: running code inspection
