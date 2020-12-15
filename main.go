@@ -1,7 +1,28 @@
 package main
 
-import "github.com/deltacat/dbstress/cmd"
+import (
+	"time"
+
+	"github.com/deltacat/dbstress/cmd"
+)
+
+// set by the compiler
+var project, timestamp, version, revision string
 
 func main() {
-	cmd.Execute()
+	if timestamp == "" {
+		timestamp = time.Now().String()
+	}
+	if revision == "" {
+		revision = "unknown"
+	}
+	if version == "" {
+		version = "dev"
+	}
+	cmd.Execute(cmd.VersionInfo{
+		Project:   project,
+		Version:   version,
+		Timestamp: timestamp,
+		Revision:  revision,
+	})
 }

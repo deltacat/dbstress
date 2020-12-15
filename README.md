@@ -1,8 +1,11 @@
 # Stress tool
 
+This repo fork from influxdata/influx-stress.
+Will change to stress test on influxdb and mysql/postgress, and do some comparision.
+
 ## Build Instructions
 
-Building `influx-stress` requires the Golang toolchain. If you do not have the Golang toolchain installed
+Building `dbstress` requires the Golang toolchain. If you do not have the Golang toolchain installed
 please follow the instructions [golang.org/doc/install](https://golang.org/doc/install)
 
 ```sh
@@ -15,15 +18,15 @@ go get -v github.com/deltacat/dbstress/cmd/...
 Create artificial load on an InfluxDB instance
 
 Usage:
-  influx-stress [command]
+  dbstress [command]
 
   Available Commands:
     insert      Insert data into InfluxDB
 
     Flags:
-      -h, --help   help for influx-stress
+      -h, --help   help for dbstress
 
-      Use "influx-stress [command] --help" for more information about a command.
+      Use "dbstress [command] --help" for more information about a command.
 ```
 
 ## Insert Subcommand
@@ -32,7 +35,7 @@ Usage:
 Insert data into InfluxDB
 
 Usage:
-  influx-stress insert SERIES FIELDS [flags]
+  dbstress insert SERIES FIELDS [flags]
 
 Flags:
   -b, --batch-size uint      number of points in a batch (default 10000)
@@ -60,35 +63,35 @@ Flags:
 Runs forever
 
 ```bash
-influx-stress insert
+dbstress insert
 ```
 
 Runs forever writing as fast as possible
 
 ```bash
-influx-stress insert -f
+dbstress insert -f
 ```
 
 Runs for 1 minute writing as fast as possible
 
 ```bash
-influx-stress insert -r 1m -f
+dbstress insert -r 1m -f
 ```
 
 Writing an example series key
 
 ```bash
-influx-stress insert cpu,host=server,location=us-west,id=myid
+dbstress insert cpu,host=server,location=us-west,id=myid
 ```
 
 Writing an example series key with 20,000 series
 
 ```bash
-influx-stress insert -s 20000 cpu,host=server,location=us-west,id=myid
+dbstress insert -s 20000 cpu,host=server,location=us-west,id=myid
 ```
 
 Writing an example point
 
 ```bash
-influx-stress insert cpu,host=server,location=us-west,id=myid busy=100,idle=10,random=5i
+dbstress insert cpu,host=server,location=us-west,id=myid busy=100,idle=10,random=5i
 ```

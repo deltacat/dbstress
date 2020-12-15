@@ -36,6 +36,12 @@ build:
 	@echo ┌ compiling from source
 	mkdir -p $(GOBIN)
 	$(GO_ENV) go build $(GO_EXTRA_BUILD_ARGS) \
+		-ldflags " \
+			-X 'main.project="$(PROJECTNAME)"' \
+			-X 'main.timestamp="$(TIMESTAMP)"' \
+			-X 'main.version=$(PROJECTVER)' \
+			-X 'main.revision=$(REVER)' \
+		" \
 		-o $(GOBIN)/$(PROJECTNAME) \
 		$(PROJECTBASE)/main.go
 	@echo └ done
