@@ -24,7 +24,7 @@ type point struct {
 	time *lineprotocol.Timestamp
 }
 
-// New returns a new point without setting the time field.
+// returns a new point without setting the time field.
 func build(sk []byte, ints, floats []string, p lineprotocol.Precision) *point {
 	fields := []lineprotocol.Field{}
 	e := &point{
@@ -83,9 +83,9 @@ func (p *point) Update() {
 }
 
 // NewPoints returns a slice of Points of length seriesN shaped like the given seriesKey.
-func NewPoints(seriesKey, fields string, seriesN int, pc lineprotocol.Precision) []lineprotocol.Point {
+func NewPoints(measurement, seriesKey, fields string, seriesN int, pc lineprotocol.Precision) []lineprotocol.Point {
 	pts := []lineprotocol.Point{}
-	series := generateSeriesKeys(seriesKey, seriesN)
+	series := generateSeriesKeys(measurement, seriesKey, seriesN)
 	ints, floats := generateFieldSet(fields)
 	for _, sk := range series {
 		p := build(sk, ints, floats, pc)

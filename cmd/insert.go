@@ -45,6 +45,7 @@ func runInsert(cmd *cobra.Command, args []string) {
 }
 
 func insert(cfg config.Config) {
+	measurement := cfg.Points.Measurement
 	seriesKey := cfg.Points.SeriesKey
 	fieldStr := cfg.Points.FieldsStr
 	if !strings.Contains(seriesKey, ",") && !strings.Contains(seriesKey, "=") {
@@ -85,7 +86,7 @@ func insert(cfg config.Config) {
 		}
 	}
 
-	pts := point.NewPoints(seriesKey, fieldStr, seriesN, lineprotocol.Nanosecond)
+	pts := point.NewPoints(measurement, seriesKey, fieldStr, seriesN, lineprotocol.Nanosecond)
 
 	startSplit := 0
 	inc := int(seriesN) / int(concurrency)

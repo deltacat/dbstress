@@ -71,6 +71,7 @@ func setDefaultConfig() {
 	viper.SetDefault("connection.influxdb.tls-skip-verify", false)
 	viper.SetDefault("connection.influxdb.gzip", -1)
 
-	viper.SetDefault("points.series-key", "ctr,some=tag")
+	viper.SetDefault("points.measurement", "ctr")
+	viper.SetDefault("points.series-key", "some=tag")
 	viper.SetDefault("points.fields-str", "n=0i")
 }

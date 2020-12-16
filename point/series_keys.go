@@ -52,32 +52,31 @@ func tagCardinalityPartition(numTags int, factors map[int]int) []int {
 	return buckets
 }
 
-func generateSeriesKeys(tmplt string, card int) [][]byte {
-	fmtTmplt, numTags := formatTemplate(tmplt)
+func generateSeriesKeys(measurement, tmplt string, card int) [][]byte {
+	fmtTmplt, numTags := formatTemplate(measurement, tmplt)
 	tagCardinalities := tagCardinalityPartition(numTags, primeFactorization(card))
 
-	series := [][]byte{}
+	series := []string{}
+	seriesAsBytes := [][]byte{}
 
 	for i := 0; i < card; i++ {
 		mods := sliceMod(i, tagCardinalities)
-		series = append(series, []byte(fmt.Sprintf(fmtTmplt, mods...)))
+		serie := fmt.Sprintf(fmtTmplt, mods...)
+		series = append(series, serie)
+		seriesAsBytes = append(seriesAsBytes, []byte(serie))
 	}
 
-	return series
+	return seriesAsBytes
 }
 
-func formatTemplate(s string) (string, int) {
+func formatTemplate(m, s string) (string, int) {
 	parts := strings.Split(s, ",")
-	numTags := len(parts) - 1
 
 	for i, part := range parts {
-		if i == 0 {
-			continue
-		}
 		parts[i] = part + "-%v"
 	}
 
-	return strings.Join(parts, ","), numTags
+	return m + "," + strings.Join(parts, ","), len(parts)
 }
 
 func sliceMod(m int, mods []int) []interface{} {

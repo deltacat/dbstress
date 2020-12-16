@@ -33,6 +33,7 @@ type MySQLClientConfig struct {
 
 // PointsConfig points to write config
 type PointsConfig struct {
-	SeriesKey string `mapstructure:"series-key"`
-	FieldsStr string `mapstructure:"fields-str"`
+	Measurement string `mapstructure:"measurement"`
+	SeriesKey   string `mapstructure:"series-key"`
+	FieldsStr   string `mapstructure:"fields-str"`
 }
