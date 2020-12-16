@@ -16,6 +16,7 @@ import (
 	"github.com/deltacat/dbstress/point"
 	"github.com/deltacat/dbstress/stress"
 	"github.com/deltacat/dbstress/write"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -32,32 +33,24 @@ var (
 	tlsSkipVerify           bool
 )
 
-const (
-	defaultSeriesKey string = "ctr,some=tag"
-	defaultFieldStr  string = "n=0i"
-)
-
 var insertCmd = &cobra.Command{
 	Use:   "insert SERIES FIELDS",
 	Short: "Insert data into DB",
 	Long:  "",
-	Run:   insertRun,
+	Run:   runInsert,
 }
 
-func insertRun(cmd *cobra.Command, args []string) {
-	seriesKey := defaultSeriesKey
-	fieldStr := defaultFieldStr
-	if len(args) >= 1 {
-		seriesKey = args[0]
-		if !strings.Contains(seriesKey, ",") && !strings.Contains(seriesKey, "=") {
-			fmt.Fprintln(os.Stderr, "First positional argument must be a series key, got: ", seriesKey)
-			cmd.Usage()
-			os.Exit(1)
-			return
-		}
-	}
-	if len(args) == 2 {
-		fieldStr = args[1]
+func runInsert(cmd *cobra.Command, args []string) {
+	insert(config.Cfg)
+}
+
+func insert(cfg config.Config) {
+	seriesKey := cfg.Points.SeriesKey
+	fieldStr := cfg.Points.FieldsStr
+	if !strings.Contains(seriesKey, ",") && !strings.Contains(seriesKey, "=") {
+		logrus.Warnf("expect series like 'ctr,some=tag', got '%s'", seriesKey)
+		os.Exit(1)
+		return
 	}
 
 	concurrency := pps / batchSize
@@ -113,7 +106,7 @@ func insertRun(cmd *cobra.Command, args []string) {
 	var totalWritten uint64
 
 	start := time.Now()
-	gzip := config.Cfg.Connection.Influxdb.Gzip
+	gzip := cfg.Connection.Influxdb.Gzip
 	for i := uint64(0); i < concurrency; i++ {
 
 		go func(startSplit, endSplit int) {

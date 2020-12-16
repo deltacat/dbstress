@@ -10,6 +10,7 @@ type Config struct {
 		Influxdb InfluxdbClientConfig `mapstructure:"influxdb"`
 		Mysql    MySQLClientConfig    `mapstructure:"mysql"`
 	} `mapstructure:"connection"`
+	Points PointsConfig `mapstructure:"points"`
 }
 
 // InfluxdbClientConfig the influxdb client config struct
@@ -28,4 +29,10 @@ type InfluxdbClientConfig struct {
 // MySQLClientConfig mysql client config
 type MySQLClientConfig struct {
 	Dsn string `mapstructure:"url"`
+}
+
+// PointsConfig points to write config
+type PointsConfig struct {
+	SeriesKey string `mapstructure:"series-key"`
+	FieldsStr string `mapstructure:"fields-str"`
 }

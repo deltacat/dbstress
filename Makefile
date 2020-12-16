@@ -55,6 +55,12 @@ clean:
 	@rm -f $(TESTOUT)
 	@echo └ done
 
+## quick: run a quick case
+.PHONY: quick
+quick: build
+	@echo "==> Run quick insert"
+	- $(GOBIN)/$(PROJECTNAME) insert -f -r 15s
+
 ## test: running tests
 .PHONY: test
 test: 
