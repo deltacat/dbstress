@@ -19,7 +19,7 @@ func primeFactorization(n int) (factors map[int]int) {
 
 		if n%i == 0 {
 			n = n / i
-			factors[i] += 1
+			factors[i]++
 		} else {
 			i++
 		}
@@ -37,7 +37,7 @@ func tagCardinalityPartition(numTags int, factors map[int]int) []int {
 	}
 
 	orderedFactors := []int{}
-	for factor, _ := range factors {
+	for factor := range factors {
 		orderedFactors = append(orderedFactors, factor)
 	}
 	sort.Ints(orderedFactors)

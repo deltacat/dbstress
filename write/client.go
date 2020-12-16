@@ -13,11 +13,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// constants
 const (
 	DefaultDatabase        = "stress"
 	DefaultRetentionPolicy = "autogen"
 )
 
+// ClientConfig the influxdb client config struct
 type ClientConfig struct {
 	BaseURL string
 
@@ -32,6 +34,7 @@ type ClientConfig struct {
 	Gzip bool
 }
 
+// Client the influxdb client interface
 type Client interface {
 	Create(string) error
 	Send([]byte) (latNs int64, statusCode int, body string, err error)
@@ -47,6 +50,7 @@ type client struct {
 	httpClient *fasthttp.Client
 }
 
+// NewClient create a new influxdb client instance
 func NewClient(cfg ClientConfig) Client {
 	var httpClient *fasthttp.Client
 	if cfg.TLSSkipVerify {
@@ -141,6 +145,7 @@ type fileClient struct {
 	batch uint
 }
 
+// NewFileClient create a file client for influxdb
 func NewFileClient(path string, cfg ClientConfig) (Client, error) {
 	c := &fileClient{}
 

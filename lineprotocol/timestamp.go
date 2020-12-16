@@ -11,6 +11,7 @@ import (
 // Precision a type for the precision of the timestamp.
 type Precision int
 
+// constants
 const (
 	Nanosecond = iota
 	Second

@@ -214,6 +214,7 @@ func client() write.Client {
 	return write.NewClient(cfg)
 }
 
+// Sink sink interface
 type Sink interface {
 	Chan() chan stress.WriteResult
 	Open()

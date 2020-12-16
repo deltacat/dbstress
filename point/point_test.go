@@ -1,4 +1,4 @@
-package point_test
+package point
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/deltacat/dbstress/lineprotocol"
-	"github.com/deltacat/dbstress/point"
 )
 
 var (
@@ -19,7 +18,7 @@ func TestPoint(t *testing.T) {
 	ints := []string{"user", "system"}
 	floats := []string{"busy", "wait"}
 
-	p := point.New(sk, ints, floats, lineprotocol.Nanosecond)
+	p := build(sk, ints, floats, lineprotocol.Nanosecond)
 	p.SetTime(testTime)
 
 	buf := bytes.NewBuffer(nil)
