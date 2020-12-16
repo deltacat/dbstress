@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/lineprotocol"
 	"github.com/deltacat/dbstress/point"
 	"github.com/deltacat/dbstress/stress"
@@ -19,18 +20,16 @@ import (
 )
 
 var (
-	statsHost, statsDB                   string
-	host, db, rp, precision, consistency string
-	username, password                   string
-	createCommand, dump                  string
-	seriesN, gzip                        int
-	batchSize, pointsN, pps              uint64
-	runtime                              time.Duration
-	tick                                 time.Duration
-	fast, quiet                          bool
-	strict, kapacitorMode                bool
-	recordStats                          bool
-	tlsSkipVerify                        bool
+	statsHost, statsDB      string
+	createCommand, dump     string
+	seriesN                 int
+	batchSize, pointsN, pps uint64
+	runtime                 time.Duration
+	tick                    time.Duration
+	fast, quiet             bool
+	strict, kapacitorMode   bool
+	recordStats             bool
+	tlsSkipVerify           bool
 )
 
 const (
@@ -40,7 +39,7 @@ const (
 
 var insertCmd = &cobra.Command{
 	Use:   "insert SERIES FIELDS",
-	Short: "Insert data into InfluxDB", // better descriiption
+	Short: "Insert data into DB",
 	Long:  "",
 	Run:   insertRun,
 }
@@ -114,6 +113,7 @@ func insertRun(cmd *cobra.Command, args []string) {
 	var totalWritten uint64
 
 	start := time.Now()
+	gzip := config.Cfg.Connection.Influxdb.Gzip
 	for i := uint64(0); i < concurrency; i++ {
 
 		go func(startSplit, endSplit int) {
@@ -165,13 +165,7 @@ func init() {
 	insertCmd.Flags().StringVarP(&statsHost, "stats-host", "", "http://localhost:8086", "Address of InfluxDB instance where runtime statistics will be recorded")
 	insertCmd.Flags().StringVarP(&statsDB, "stats-db", "", "stress_stats", "Database that statistics will be written to")
 	insertCmd.Flags().BoolVarP(&recordStats, "stats", "", false, "Record runtime statistics")
-	insertCmd.Flags().StringVarP(&host, "host", "", "http://localhost:8086", "Address of InfluxDB instance")
-	insertCmd.Flags().StringVarP(&username, "user", "", "", "User to write data as")
-	insertCmd.Flags().StringVarP(&password, "pass", "", "", "Password for user")
-	insertCmd.Flags().StringVarP(&db, "db", "", "stress", "Database that will be written to")
-	insertCmd.Flags().StringVarP(&rp, "rp", "", "", "Retention Policy that will be written to")
-	insertCmd.Flags().StringVarP(&precision, "precision", "p", "n", "Resolution of data being written")
-	insertCmd.Flags().StringVarP(&consistency, "consistency", "c", "one", "Write consistency (only applicable to clusters)")
+
 	insertCmd.Flags().IntVarP(&seriesN, "series", "s", 100000, "number of series that will be written")
 	insertCmd.Flags().Uint64VarP(&pointsN, "points", "n", math.MaxUint64, "number of points that will be written")
 	insertCmd.Flags().Uint64VarP(&batchSize, "batch-size", "b", 10000, "number of points in a batch")
@@ -182,27 +176,14 @@ func init() {
 	insertCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Only print the write throughput")
 	insertCmd.Flags().StringVar(&createCommand, "create", "", "Use a custom create database command")
 	insertCmd.Flags().BoolVarP(&kapacitorMode, "kapacitor", "k", false, "Use Kapacitor mode, namely do not try to run any queries.")
-	insertCmd.Flags().IntVar(&gzip, "gzip", 0, "If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.")
 	insertCmd.Flags().StringVar(&dump, "dump", "", "Dump to given file instead of writing over HTTP")
 	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
-	insertCmd.Flags().BoolVarP(&tlsSkipVerify, "tls-skip-verify", "", false, "Skip verify in for TLS")
 }
 
 func client() write.Client {
-	cfg := write.ClientConfig{
-		BaseURL:         host,
-		Database:        db,
-		RetentionPolicy: rp,
-		User:            username,
-		Pass:            password,
-		Precision:       precision,
-		Consistency:     consistency,
-		TLSSkipVerify:   tlsSkipVerify,
-		Gzip:            gzip != 0,
-	}
-
+	influxCfg := config.Cfg.Connection.Influxdb
 	if dump != "" {
-		c, err := write.NewFileClient(dump, cfg)
+		c, err := write.NewFileClient(dump, influxCfg)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error opening file:", err)
 			os.Exit(1)
@@ -211,7 +192,7 @@ func client() write.Client {
 
 		return c
 	}
-	return write.NewClient(cfg)
+	return write.NewClient(influxCfg)
 }
 
 // Sink sink interface
@@ -296,7 +277,6 @@ func (s *multiSink) Open() {
 	for _, sink := range s.sinks {
 		sink.Open()
 	}
-
 	go s.run()
 }
 
@@ -339,12 +319,12 @@ type influxDBSink struct {
 
 func newInfluxDBSink(nWriters int, url, db string) *influxDBSink {
 	cfg := write.ClientConfig{
-		BaseURL:         url,
+		URL:             url,
 		Database:        db,
 		RetentionPolicy: "autogen",
 		Precision:       "ns",
 		Consistency:     "any",
-		Gzip:            false,
+		Gzip:            0,
 	}
 
 	return &influxDBSink{

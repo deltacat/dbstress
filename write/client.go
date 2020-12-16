@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/deltacat/dbstress/config"
 	"github.com/valyala/fasthttp"
 )
 
@@ -20,19 +21,7 @@ const (
 )
 
 // ClientConfig the influxdb client config struct
-type ClientConfig struct {
-	BaseURL string
-
-	Database        string
-	RetentionPolicy string
-	User            string
-	Pass            string
-	Precision       string
-	Consistency     string
-	TLSSkipVerify   bool
-
-	Gzip bool
-}
+type ClientConfig = config.InfluxdbClientConfig
 
 // Client the influxdb client interface
 type Client interface {
@@ -74,7 +63,7 @@ func (c *client) Create(command string) error {
 
 	vals := url.Values{}
 	vals.Set("q", command)
-	u, err := url.Parse(c.cfg.BaseURL)
+	u, err := url.Parse(c.cfg.URL)
 	if err != nil {
 		return err
 	}
@@ -103,7 +92,7 @@ func (c *client) Send(b []byte) (latNs int64, statusCode int, body string, err e
 	req.Header.SetContentTypeBytes([]byte("text/plain"))
 	req.Header.SetMethodBytes([]byte("POST"))
 	req.Header.SetRequestURIBytes(c.url)
-	if c.cfg.Gzip {
+	if c.cfg.Gzip != 0 {
 		req.Header.SetBytesKV([]byte("Content-Encoding"), []byte("gzip"))
 	}
 	req.Header.SetContentLength(len(b))
@@ -223,5 +212,5 @@ func writeURLFromConfig(cfg ClientConfig) string {
 		params.Set("consistency", cfg.Consistency)
 	}
 
-	return cfg.BaseURL + "/write?" + params.Encode()
+	return cfg.URL + "/write?" + params.Encode()
 }

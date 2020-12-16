@@ -19,6 +19,9 @@ func main() {
 	if version == "" {
 		version = "dev"
 	}
+	if project == "" {
+		project = "dbstress"
+	}
 	cmd.Execute(cmd.VersionInfo{
 		Project:   project,
 		Version:   version,

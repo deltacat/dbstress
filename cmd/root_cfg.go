@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/deltacat/dbstress/cmd/config"
+	"github.com/deltacat/dbstress/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -61,5 +61,13 @@ func viperBindEnvs(iface interface{}, parts ...string) {
 }
 
 func setDefaultConfig() {
-	viper.SetDefault("connection.influxdb", "http://127.0.0.1:8086")
+	viper.SetDefault("connection.influxdb.url", "http://127.0.0.1:8086")
+	viper.SetDefault("connection.influxdb.user", "")
+	viper.SetDefault("connection.influxdb.pass", "")
+	viper.SetDefault("connection.influxdb.db", "stress")
+	viper.SetDefault("connection.influxdb.rp", "")
+	viper.SetDefault("connection.influxdb.precision", "n")
+	viper.SetDefault("connection.influxdb.consistency", "one")
+	viper.SetDefault("connection.influxdb.tls-skip-verify", false)
+	viper.SetDefault("connection.influxdb.gzip", -1)
 }
