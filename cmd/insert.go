@@ -249,11 +249,10 @@ func (s *errorSink) Chan() chan stress.WriteResult {
 }
 
 type multiSink struct {
-	Ch chan stress.WriteResult
-
 	sinks []Sink
-
-	open bool
+	Ch    chan stress.WriteResult
+	wg    sync.WaitGroup
+	open  bool
 }
 
 func newMultiSink(nWriters int) *multiSink {
@@ -271,10 +270,12 @@ func (s *multiSink) Open() {
 	for _, sink := range s.sinks {
 		sink.Open()
 	}
+	s.wg.Add(1)
 	go s.run()
 }
 
 func (s *multiSink) run() {
+	defer s.wg.Done()
 	const timeFormat = "[2006-01-02 15:04:05]"
 	for r := range s.Ch {
 		for _, sink := range s.sinks {
@@ -288,6 +289,8 @@ func (s *multiSink) run() {
 }
 
 func (s *multiSink) Close() {
+	close(s.Ch)
+	s.wg.Wait()
 	s.open = false
 	for _, sink := range s.sinks {
 		sink.Close()
