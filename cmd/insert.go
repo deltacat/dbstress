@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/lineprotocol"
 	"github.com/deltacat/dbstress/point"
 	"github.com/deltacat/dbstress/stress"
-	"github.com/deltacat/dbstress/write"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,10 +41,28 @@ var insertCmd = &cobra.Command{
 }
 
 func runInsert(cmd *cobra.Command, args []string) {
-	insert(config.Cfg)
+
+	if strings.Contains(strings.ToLower(targets), "influx") {
+		logrus.Info("will insert to influxdb")
+		insertInflux(config.Cfg)
+	}
+
+	if strings.Contains(strings.ToLower(targets), "mysql") {
+		logrus.Info("will insert to mysql")
+		insertMysql(config.Cfg)
+	}
+
 }
 
-func insert(cfg config.Config) {
+func insertMysql(cfg config.Config) {
+	if cli, err := client.NewMySQLClient(cfg.Connection.Mysql); err != nil {
+		logrus.WithError(err).Error("create mysql client failed")
+	} else {
+		cli.Close()
+	}
+}
+
+func insertInflux(cfg config.Config) {
 	measurement := cfg.Points.Measurement
 	seriesKey := cfg.Points.SeriesKey
 	fieldStr := cfg.Points.FieldsStr
@@ -75,7 +93,7 @@ func insert(cfg config.Config) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
-	c := newClient()
+	c := newInfluxClient()
 
 	if !kapacitorMode {
 		if err := c.Create(createCommand); err != nil {
@@ -174,10 +192,10 @@ func init() {
 	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
 }
 
-func newClient() write.Client {
+func newInfluxClient() client.Client {
 	influxCfg := config.Cfg.Connection.Influxdb
 	if dump != "" {
-		c, err := write.NewFileClient(dump, influxCfg)
+		c, err := client.NewInfluxFileClient(dump, influxCfg)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error opening file:", err)
 			os.Exit(1)
@@ -186,7 +204,7 @@ func newClient() write.Client {
 
 		return c
 	}
-	return write.NewClient(influxCfg)
+	return client.NewInfluxDbClient(influxCfg)
 }
 
 // Sink sink interface
@@ -309,13 +327,13 @@ func (s *multiSink) AddSink(sink Sink) error {
 
 type influxDBSink struct {
 	Ch     chan stress.WriteResult
-	client write.Client
+	client client.Client
 	buf    *bytes.Buffer
 	ticker *time.Ticker
 }
 
 func newInfluxDBSink(nWriters int, url, db string) *influxDBSink {
-	cfg := write.ClientConfig{
+	cfg := client.InfluxConfig{
 		URL:             url,
 		Database:        db,
 		RetentionPolicy: "autogen",
@@ -326,7 +344,7 @@ func newInfluxDBSink(nWriters int, url, db string) *influxDBSink {
 
 	return &influxDBSink{
 		Ch:     make(chan stress.WriteResult, 8*nWriters),
-		client: write.NewClient(cfg),
+		client: client.NewInfluxDbClient(cfg),
 		buf:    bytes.NewBuffer(nil),
 	}
 }

@@ -6,8 +6,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/lineprotocol"
-	"github.com/deltacat/dbstress/write"
 )
 
 // WriteResult contains the latency, status code, and error type
@@ -38,7 +38,7 @@ type WriteConfig struct {
 // to write data to the target until one of the following conditions is met.
 // 1. We reach that MaxPoints specified in the WriteConfig.
 // 2. We've passed the Deadline specified in the WriteConfig.
-func Write(pts []lineprotocol.Point, c write.Client, cfg WriteConfig) (uint64, time.Duration) {
+func Write(pts []lineprotocol.Point, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
 	if cfg.Results == nil {
 		panic("Results Channel on WriteConfig cannot be nil")
 	}
@@ -115,7 +115,7 @@ WRITE_BATCHES:
 	return pointCount, time.Since(start)
 }
 
-func sendBatch(c write.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
+func sendBatch(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
 	lat, status, body, err := c.Send(buf.Bytes())
 	buf.Reset()
 	select {

@@ -1,4 +1,4 @@
-package write
+package client
 
 import (
 	"crypto/tls"
@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deltacat/dbstress/config"
 	"github.com/valyala/fasthttp"
 )
 
@@ -20,27 +19,16 @@ const (
 	DefaultRetentionPolicy = "autogen"
 )
 
-// ClientConfig the influxdb client config struct
-type ClientConfig = config.InfluxdbClientConfig
-
-// Client the influxdb client interface
-type Client interface {
-	Create(string) error
-	Send([]byte) (latNs int64, statusCode int, body string, err error)
-
-	Close() error
-}
-
 type client struct {
 	url []byte
 
-	cfg ClientConfig
+	cfg InfluxConfig
 
 	httpClient *fasthttp.Client
 }
 
-// NewClient create a new influxdb client instance
-func NewClient(cfg ClientConfig) Client {
+// NewInfluxDbClient create a new influxdb client instance
+func NewInfluxDbClient(cfg InfluxConfig) Client {
 	var httpClient *fasthttp.Client
 	if cfg.TLSSkipVerify {
 		httpClient = &fasthttp.Client{
@@ -126,7 +114,7 @@ func (c *client) Close() error {
 	return nil
 }
 
-type fileClient struct {
+type influxFileClient struct {
 	database string
 
 	mu    sync.Mutex
@@ -134,9 +122,9 @@ type fileClient struct {
 	batch uint
 }
 
-// NewFileClient create a file client for influxdb
-func NewFileClient(path string, cfg ClientConfig) (Client, error) {
-	c := &fileClient{}
+// NewInfluxFileClient create a file client for influxdb
+func NewInfluxFileClient(path string, cfg InfluxConfig) (Client, error) {
+	c := &influxFileClient{}
 
 	var err error
 	c.f, err = os.Create(path)
@@ -151,7 +139,7 @@ func NewFileClient(path string, cfg ClientConfig) (Client, error) {
 	return c, nil
 }
 
-func (c *fileClient) Create(command string) error {
+func (c *influxFileClient) Create(command string) error {
 	if command == "" {
 		command = "CREATE DATABASE " + c.database
 	}
@@ -162,7 +150,7 @@ func (c *fileClient) Create(command string) error {
 	return err
 }
 
-func (c *fileClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
+func (c *influxFileClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -189,11 +177,11 @@ func (c *fileClient) Send(b []byte) (latNs int64, statusCode int, body string, e
 	return
 }
 
-func (c *fileClient) Close() error {
+func (c *influxFileClient) Close() error {
 	return c.f.Close()
 }
 
-func writeURLFromConfig(cfg ClientConfig) string {
+func writeURLFromConfig(cfg InfluxConfig) string {
 	params := url.Values{}
 	params.Set("db", cfg.Database)
 	if cfg.User != "" {

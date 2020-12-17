@@ -1,4 +1,4 @@
-package write_test
+package client
 
 import "testing"
 

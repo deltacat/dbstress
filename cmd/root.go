@@ -13,6 +13,8 @@ var rootCmd = &cobra.Command{
 	Long:  "",
 }
 
+var targets string
+
 // Execute run root cmd
 func Execute(v VersionInfo) {
 	version = v
@@ -25,4 +27,6 @@ func Execute(v VersionInfo) {
 func init() {
 	cobra.OnInitialize(initConfig)
 	setDefaultConfig()
+
+	rootCmd.PersistentFlags().StringVarP(&targets, "targets", "t", "influx", "set which target to run (mysql, influxdb)")
 }

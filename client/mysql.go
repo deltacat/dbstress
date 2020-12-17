@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/deltacat/dbstress/config"
 	"github.com/sirupsen/logrus"
 
 	// mysql driver
@@ -16,7 +15,7 @@ type mysqlClient struct {
 }
 
 // NewMySQLClient create new mysql client
-func NewMySQLClient(cfg config.MySQLClientConfig) (Client, error) {
+func NewMySQLClient(cfg MySQLConfig) (Client, error) {
 	db, err := sql.Open("mysql", cfg.Dsn)
 	if err != nil {
 		log.Printf("Error %s when opening DB\n", err)

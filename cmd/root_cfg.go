@@ -24,7 +24,7 @@ func initConfig() {
 			logrus.WithError(err).Fatal("read configuration file error")
 		}
 	} else {
-		logrus.Info("configuration file loaded: ", viper.ConfigFileUsed())
+		logrus.WithField("path", viper.ConfigFileUsed()).Info("configuration file loaded")
 	}
 
 	viperBindEnvs(config.Cfg)
