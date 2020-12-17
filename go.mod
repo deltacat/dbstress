@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
 	github.com/klauspost/compress v1.11.3 // indirect
 	github.com/kr/text v0.2.0 // indirect

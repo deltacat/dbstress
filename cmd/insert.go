@@ -75,7 +75,7 @@ func insert(cfg config.Config) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
-	c := client()
+	c := newClient()
 
 	if !kapacitorMode {
 		if err := c.Create(createCommand); err != nil {
@@ -174,7 +174,7 @@ func init() {
 	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
 }
 
-func client() write.Client {
+func newClient() write.Client {
 	influxCfg := config.Cfg.Connection.Influxdb
 	if dump != "" {
 		c, err := write.NewFileClient(dump, influxCfg)
