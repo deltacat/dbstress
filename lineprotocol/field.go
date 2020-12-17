@@ -8,6 +8,7 @@ import (
 
 var equalSign = byte('=')
 var comma = byte(',')
+var quotes = byte('"')
 
 // Field is an aliased io.WriterTo.
 type Field io.WriterTo
@@ -79,4 +80,36 @@ func (f *Float) WriteTo(w io.Writer) (int64, error) {
 	m, err := w.Write(buf)
 
 	return int64(n + m), err
+}
+
+// String implements the Field interface.
+// - Key is the line protocol field key as a byte slice.
+// - Value is the string value for the field.
+type String struct {
+	Key   []byte
+	Value string
+}
+
+// WriteTo writes the field key value pair to an io.Writer
+func (s *String) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(s.Key)
+	if err != nil {
+		return int64(n), err
+	}
+
+	e, err := w.Write([]byte{equalSign})
+	if err != nil {
+		return int64(n + e), err
+	}
+
+	strByte := []byte(s.Value)
+	buf := make([]byte, 0, len(strByte)+2)
+	buf = append(buf, quotes)
+	buf = append(buf, strByte...)
+	buf = append(buf, quotes)
+	m, err := w.Write(buf)
+	if err != nil {
+		return int64(n + e + m), err
+	}
+	return int64(n + e + m), err
 }

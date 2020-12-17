@@ -17,8 +17,9 @@ func TestPoint(t *testing.T) {
 	sk := []byte("cpu,host=server")
 	ints := []string{"user", "system"}
 	floats := []string{"busy", "wait"}
+	strs := []string{}
 
-	p := build(sk, ints, floats, lineprotocol.Nanosecond)
+	p := build(sk, ints, floats, strs, lineprotocol.Nanosecond)
 	p.SetTime(testTime)
 
 	buf := bytes.NewBuffer(nil)
