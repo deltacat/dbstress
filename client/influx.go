@@ -10,13 +10,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/deltacat/dbstress/config"
+	"github.com/deltacat/dbstress/utils"
 	"github.com/valyala/fasthttp"
-)
-
-// constants
-const (
-	DefaultDatabase        = "stress"
-	DefaultRetentionPolicy = "autogen"
 )
 
 type client struct {
@@ -25,6 +21,22 @@ type client struct {
 	cfg InfluxConfig
 
 	httpClient *fasthttp.Client
+}
+
+// NewInfluxClient return new influx (db/file) client instance
+func NewInfluxClient(dump string) Client {
+	influxCfg := config.Cfg.Connection.Influxdb
+	if dump != "" {
+		c, err := NewInfluxFileClient(dump, influxCfg)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error opening file:", err)
+			os.Exit(1)
+			return c
+		}
+
+		return c
+	}
+	return NewInfluxDbClient(influxCfg)
 }
 
 // NewInfluxDbClient create a new influxdb client instance
@@ -44,10 +56,8 @@ func NewInfluxDbClient(cfg InfluxConfig) Client {
 	}
 }
 
-func (c *client) Create(command string) error {
-	if command == "" {
-		command = "CREATE DATABASE " + c.cfg.Database
-	}
+func (c *client) Create() error {
+	command := "CREATE DATABASE " + c.cfg.Database
 
 	vals := url.Values{}
 	vals.Set("q", command)
@@ -114,6 +124,10 @@ func (c *client) Close() error {
 	return nil
 }
 
+func (c *client) Reset() error {
+	return utils.ErrNotImplemented
+}
+
 type influxFileClient struct {
 	database string
 
@@ -139,11 +153,8 @@ func NewInfluxFileClient(path string, cfg InfluxConfig) (Client, error) {
 	return c, nil
 }
 
-func (c *influxFileClient) Create(command string) error {
-	if command == "" {
-		command = "CREATE DATABASE " + c.database
-	}
-
+func (c *influxFileClient) Create() error {
+	command := "CREATE DATABASE " + c.database
 	c.mu.Lock()
 	_, err := fmt.Fprintf(c.f, "# create: %s\n\n", command)
 	c.mu.Unlock()
@@ -179,6 +190,10 @@ func (c *influxFileClient) Send(b []byte) (latNs int64, statusCode int, body str
 
 func (c *influxFileClient) Close() error {
 	return c.f.Close()
+}
+
+func (c *influxFileClient) Reset() error {
+	return utils.ErrNotImplemented
 }
 
 func writeURLFromConfig(cfg InfluxConfig) string {

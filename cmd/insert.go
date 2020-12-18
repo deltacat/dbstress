@@ -22,7 +22,7 @@ import (
 
 var (
 	statsHost, statsDB      string
-	createCommand, dump     string
+	dump                    string
 	seriesN                 int
 	batchSize, pointsN, pps uint64
 	runtime                 time.Duration
@@ -58,6 +58,9 @@ func insertMysql(cfg config.Config) {
 	if cli, err := client.NewMySQLClient(cfg.Connection.Mysql); err != nil {
 		logrus.WithError(err).Error("create mysql client failed")
 	} else {
+		if err := cli.Create(); err != nil {
+			logrus.WithError(err).Error("create database failed")
+		}
 		cli.Close()
 	}
 }
@@ -93,10 +96,10 @@ func insertInflux(cfg config.Config) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
-	c := newInfluxClient()
+	c := client.NewInfluxClient(dump)
 
 	if !kapacitorMode {
-		if err := c.Create(createCommand); err != nil {
+		if err := c.Create(); err != nil {
 			fmt.Fprintln(os.Stderr, "Failed to create database:", err.Error())
 			fmt.Fprintln(os.Stderr, "Aborting.")
 			os.Exit(1)
@@ -186,25 +189,9 @@ func init() {
 	insertCmd.Flags().DurationVarP(&tick, "tick", "", time.Second, "Amount of time between request")
 	insertCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Run as fast as possible")
 	insertCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Only print the write throughput")
-	insertCmd.Flags().StringVar(&createCommand, "create", "", "Use a custom create database command")
 	insertCmd.Flags().BoolVarP(&kapacitorMode, "kapacitor", "k", false, "Use Kapacitor mode, namely do not try to run any queries.")
 	insertCmd.Flags().StringVar(&dump, "dump", "", "Dump to given file instead of writing over HTTP")
 	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
-}
-
-func newInfluxClient() client.Client {
-	influxCfg := config.Cfg.Connection.Influxdb
-	if dump != "" {
-		c, err := client.NewInfluxFileClient(dump, influxCfg)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error opening file:", err)
-			os.Exit(1)
-			return c
-		}
-
-		return c
-	}
-	return client.NewInfluxDbClient(influxCfg)
 }
 
 // Sink sink interface
@@ -355,7 +342,7 @@ func (s *influxDBSink) Chan() chan stress.WriteResult {
 
 func (s *influxDBSink) Open() {
 	s.ticker = time.NewTicker(time.Second)
-	err := s.client.Create("")
+	err := s.client.Create()
 	if err != nil {
 		panic(err)
 	}

@@ -1,12 +1,15 @@
 package client
 
-import "github.com/deltacat/dbstress/config"
+import (
+	"github.com/deltacat/dbstress/config"
+)
 
 // Client db connection client interface
 type Client interface {
-	Create(string) error
+	Create() error
 	Send([]byte) (latNs int64, statusCode int, body string, err error)
 	Close() error
+	Reset() error
 }
 
 // InfluxConfig influxdb client config

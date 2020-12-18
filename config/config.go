@@ -28,7 +28,10 @@ type InfluxdbClientConfig struct {
 
 // MySQLClientConfig mysql client config
 type MySQLClientConfig struct {
-	Dsn string `mapstructure:"dsn"`
+	Host     string `mapstructure:"host"`
+	User     string `mapstructure:"user"`
+	Pass     string `mapstructure:"pass"`
+	Database string `mapstructure:"db"`
 }
 
 // PointsConfig points to write config

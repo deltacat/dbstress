@@ -71,6 +71,11 @@ func setDefaultConfig() {
 	viper.SetDefault("connection.influxdb.tls-skip-verify", false)
 	viper.SetDefault("connection.influxdb.gzip", -1)
 
+	viper.SetDefault("connection.mysql.url", "127.0.0.1:3308")
+	viper.SetDefault("connection.mysql.user", "")
+	viper.SetDefault("connection.mysql.pass", "")
+	viper.SetDefault("connection.mysql.db", "stress")
+
 	viper.SetDefault("points.measurement", "ctr")
 	viper.SetDefault("points.series-key", "some=tag")
 	viper.SetDefault("points.fields-str", "n=0i")
