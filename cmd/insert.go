@@ -14,6 +14,7 @@ import (
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 	"github.com/deltacat/dbstress/data/influx/point"
 	"github.com/deltacat/dbstress/stress"
+	"github.com/deltacat/dbstress/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -95,45 +96,48 @@ func runInsert(cmd *cobra.Command, args []string) {
 
 	if strings.Contains(strings.ToLower(targets), "influx") {
 		logrus.Info("will insert to influxdb")
-		insertInflux(cfg)
+		if err := insertInflux(cfg); err != nil {
+			logrus.WithError(err).Error("error with inserting influxdb")
+		}
 	}
 
 	if strings.Contains(strings.ToLower(targets), "mysql") {
 		logrus.Info("will insert to mysql")
-		insertMysql(cfg)
-	}
-
-}
-
-func insertMysql(cfg config.Config) {
-	if cli, err := client.NewMySQLClient(cfg.Connection.Mysql); err != nil {
-		logrus.WithError(err).Error("create mysql client failed")
-	} else {
-		if err := cli.Create(); err != nil {
-			logrus.WithError(err).Error("create database failed")
+		if err := insertMysql(cfg); err != nil {
+			logrus.WithError(err).Error("error with inserting mysql")
 		}
-		cli.Close()
 	}
+
 }
 
-func insertInflux(cfg config.Config) {
+func insertMysql(cfg config.Config) error {
+	cli, err := client.NewMySQLClient(cfg.Connection.Mysql)
+	defer cli.Close()
+	if err != nil {
+		return err
+	}
+	if err = cli.Create(); err != nil {
+		return err
+	}
 
-	c := client.NewInfluxClient(dump)
+	return doInsert(cli, cfg, doWriteMysql)
+}
 
+func insertInflux(cfg config.Config) error {
+	cli, _ := client.NewInfluxClient(dump)
+	defer cli.Close()
 	if !kapacitorMode {
-		if err := c.Create(); err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to create database:", err.Error())
-			fmt.Fprintln(os.Stderr, "Aborting.")
-			os.Exit(1)
-			return
+		if err := cli.Create(); err != nil {
+			return err
 		}
 	}
 
-	pts := point.NewPoints(measurement, seriesKey, fieldStr, seriesN, lineprotocol.Nanosecond)
+	return doInsert(cli, cfg, doWriteInflux)
+}
 
-	startSplit := 0
-	inc := int(seriesN) / int(concurrency)
-	endSplit := inc
+type doWriteFunc func(cli client.Client, gzipLevel int, resultChan chan stress.WriteResult) (uint64, error)
+
+func doInsert(cli client.Client, cfg config.Config, doWrite doWriteFunc) error {
 
 	sink := stress.NewMultiSink(int(concurrency))
 	sink.AddSink(stress.NewErrorSink(int(concurrency)))
@@ -147,10 +151,37 @@ func insertInflux(cfg config.Config) {
 	var wg sync.WaitGroup
 	wg.Add(int(concurrency))
 
-	var totalWritten uint64
-
 	start := time.Now()
-	gzip := cfg.Connection.Influxdb.Gzip
+
+	totalWritten, err := doWrite(cli, cfg.Connection.Influxdb.Gzip, sink.Chan())
+
+	totalTime := time.Since(start)
+	if err := cli.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error closing client: %v\n", err.Error())
+	}
+
+	sink.Close()
+	throughput := int(float64(totalWritten) / totalTime.Seconds())
+	if quiet {
+		logrus.Infoln(throughput)
+	} else {
+		logrus.WithField("Write Throughput:", throughput).WithField("Points Written:", totalWritten).Info("run stress done")
+	}
+
+	return err
+}
+
+func doWriteInflux(cli client.Client, gzipLevel int, resultChan chan stress.WriteResult) (uint64, error) {
+	var wg sync.WaitGroup
+	wg.Add(int(concurrency))
+
+	var totalWritten uint64
+	startSplit := 0
+	inc := int(seriesN) / int(concurrency)
+	endSplit := inc
+
+	gzip := gzipLevel
+	pts := point.NewPoints(measurement, seriesKey, fieldStr, seriesN, lineprotocol.Nanosecond)
 	for i := uint64(0); i < concurrency; i++ {
 
 		go func(startSplit, endSplit int) {
@@ -166,11 +197,11 @@ func insertInflux(cfg config.Config) {
 				GzipLevel: gzip,
 				Deadline:  time.Now().Add(runtime),
 				Tick:      tick,
-				Results:   sink.Chan(),
+				Results:   resultChan,
 			}
 
 			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteInflux(pts[startSplit:endSplit], c, cfg)
+			pointsWritten, _ := stress.WriteInflux(pts[startSplit:endSplit], cli, cfg)
 			atomic.AddUint64(&totalWritten, pointsWritten)
 
 			wg.Done()
@@ -181,17 +212,10 @@ func insertInflux(cfg config.Config) {
 	}
 
 	wg.Wait()
-	totalTime := time.Since(start)
-	if err := c.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error closing client: %v\n", err.Error())
-	}
 
-	sink.Close()
-	throughput := int(float64(totalWritten) / totalTime.Seconds())
-	if quiet {
-		fmt.Println(throughput)
-	} else {
-		fmt.Println("Write Throughput:", throughput)
-		fmt.Println("Points Written:", totalWritten)
-	}
+	return totalWritten, nil
+}
+
+func doWriteMysql(cli client.Client, gzipLevel int, resultChan chan stress.WriteResult) (uint64, error) {
+	return 0, utils.ErrNotImplemented
 }

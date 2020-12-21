@@ -160,9 +160,11 @@ func NewInfluxDBSink(nWriters int, url, db string) *InfluxDBSink {
 		Gzip:            0,
 	}
 
+	cli, _ := client.NewInfluxDbClient(cfg)
+
 	return &InfluxDBSink{
 		Ch:     make(chan WriteResult, 8*nWriters),
-		client: client.NewInfluxDbClient(cfg),
+		client: cli,
 		buf:    bytes.NewBuffer(nil),
 	}
 }

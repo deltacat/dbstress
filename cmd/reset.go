@@ -5,7 +5,6 @@ import (
 
 	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/config"
-	"github.com/deltacat/dbstress/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -42,9 +41,9 @@ func runReset(cmd *cobra.Command, args []string) {
 }
 
 func resetInflux(cfg config.Config) error {
-	c := client.NewInfluxClient(dump)
-	if c == nil {
-		return utils.ErrNullPointer
+	c, err := client.NewInfluxClient(dump)
+	if err != nil {
+		return err
 	}
 	return c.Reset()
 }

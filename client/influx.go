@@ -24,23 +24,16 @@ type client struct {
 }
 
 // NewInfluxClient return new influx (db/file) client instance
-func NewInfluxClient(dump string) Client {
+func NewInfluxClient(dump string) (Client, error) {
 	influxCfg := config.Cfg.Connection.Influxdb
 	if dump != "" {
-		c, err := NewInfluxFileClient(dump, influxCfg)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error opening file:", err)
-			os.Exit(1)
-			return c
-		}
-
-		return c
+		return NewInfluxFileClient(dump, influxCfg)
 	}
 	return NewInfluxDbClient(influxCfg)
 }
 
 // NewInfluxDbClient create a new influxdb client instance
-func NewInfluxDbClient(cfg InfluxConfig) Client {
+func NewInfluxDbClient(cfg InfluxConfig) (Client, error) {
 	var httpClient *fasthttp.Client
 	if cfg.TLSSkipVerify {
 		httpClient = &fasthttp.Client{
@@ -53,7 +46,7 @@ func NewInfluxDbClient(cfg InfluxConfig) Client {
 		url:        []byte(writeURLFromConfig(cfg)),
 		cfg:        cfg,
 		httpClient: httpClient,
-	}
+	}, nil
 }
 
 func (c *client) Create() error {
