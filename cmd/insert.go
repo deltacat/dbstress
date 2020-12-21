@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -13,24 +11,25 @@ import (
 
 	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/config"
-	"github.com/deltacat/dbstress/lineprotocol"
-	"github.com/deltacat/dbstress/point"
+	"github.com/deltacat/dbstress/data/influx/lineprotocol"
+	"github.com/deltacat/dbstress/data/influx/point"
 	"github.com/deltacat/dbstress/stress"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	statsHost, statsDB      string
-	dump                    string
-	seriesN                 int
-	batchSize, pointsN, pps uint64
-	runtime                 time.Duration
-	tick                    time.Duration
-	fast, quiet             bool
-	strict, kapacitorMode   bool
-	recordStats             bool
-	tlsSkipVerify           bool
+	measurement, seriesKey, fieldStr     string
+	statsHost, statsDB                   string
+	dump                                 string
+	seriesN                              int
+	concurrency, batchSize, pointsN, pps uint64
+	runtime                              time.Duration
+	tick                                 time.Duration
+	fast, quiet                          bool
+	strict, kapacitorMode                bool
+	recordStats                          bool
+	tlsSkipVerify                        bool
 )
 
 var insertCmd = &cobra.Command{
@@ -40,42 +39,40 @@ var insertCmd = &cobra.Command{
 	Run:   runInsert,
 }
 
+func init() {
+	rootCmd.AddCommand(insertCmd)
+
+	insertCmd.Flags().StringVarP(&statsHost, "stats-host", "", "http://localhost:8086", "Address of InfluxDB instance where runtime statistics will be recorded")
+	insertCmd.Flags().StringVarP(&statsDB, "stats-db", "", "stress_stats", "Database that statistics will be written to")
+	insertCmd.Flags().BoolVarP(&recordStats, "stats", "", false, "Record runtime statistics")
+
+	insertCmd.Flags().IntVarP(&seriesN, "series", "s", 100000, "number of series that will be written")
+	insertCmd.Flags().Uint64VarP(&pointsN, "points", "n", math.MaxUint64, "number of points that will be written")
+	insertCmd.Flags().Uint64VarP(&batchSize, "batch-size", "b", 10000, "number of points in a batch")
+	insertCmd.Flags().Uint64VarP(&pps, "pps", "", 200000, "Points Per Second")
+	insertCmd.Flags().DurationVarP(&runtime, "runtime", "r", time.Duration(math.MaxInt64), "Total time that the test will run")
+	insertCmd.Flags().DurationVarP(&tick, "tick", "", time.Second, "Amount of time between request")
+	insertCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Run as fast as possible")
+	insertCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Only print the write throughput")
+	insertCmd.Flags().BoolVarP(&kapacitorMode, "kapacitor", "k", false, "Use Kapacitor mode, namely do not try to run any queries.")
+	insertCmd.Flags().StringVar(&dump, "dump", "", "Dump to given file instead of writing over HTTP")
+	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
+}
+
 func runInsert(cmd *cobra.Command, args []string) {
 
-	if strings.Contains(strings.ToLower(targets), "influx") {
-		logrus.Info("will insert to influxdb")
-		insertInflux(config.Cfg)
-	}
+	cfg := config.Cfg
+	measurement = cfg.Points.Measurement
+	seriesKey = cfg.Points.SeriesKey
+	fieldStr = cfg.Points.FieldsStr
 
-	if strings.Contains(strings.ToLower(targets), "mysql") {
-		logrus.Info("will insert to mysql")
-		insertMysql(config.Cfg)
-	}
-
-}
-
-func insertMysql(cfg config.Config) {
-	if cli, err := client.NewMySQLClient(cfg.Connection.Mysql); err != nil {
-		logrus.WithError(err).Error("create mysql client failed")
-	} else {
-		if err := cli.Create(); err != nil {
-			logrus.WithError(err).Error("create database failed")
-		}
-		cli.Close()
-	}
-}
-
-func insertInflux(cfg config.Config) {
-	measurement := cfg.Points.Measurement
-	seriesKey := cfg.Points.SeriesKey
-	fieldStr := cfg.Points.FieldsStr
 	if !strings.Contains(seriesKey, ",") && !strings.Contains(seriesKey, "=") {
 		logrus.Warnf("expect series like 'ctr,some=tag', got '%s'", seriesKey)
 		os.Exit(1)
 		return
 	}
 
-	concurrency := pps / batchSize
+	concurrency = pps / batchSize
 	// PPS takes precedence over batchSize.
 	// Adjust accordingly.
 	if pps < batchSize {
@@ -96,6 +93,31 @@ func insertInflux(cfg config.Config) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
+	if strings.Contains(strings.ToLower(targets), "influx") {
+		logrus.Info("will insert to influxdb")
+		insertInflux(cfg)
+	}
+
+	if strings.Contains(strings.ToLower(targets), "mysql") {
+		logrus.Info("will insert to mysql")
+		insertMysql(cfg)
+	}
+
+}
+
+func insertMysql(cfg config.Config) {
+	if cli, err := client.NewMySQLClient(cfg.Connection.Mysql); err != nil {
+		logrus.WithError(err).Error("create mysql client failed")
+	} else {
+		if err := cli.Create(); err != nil {
+			logrus.WithError(err).Error("create database failed")
+		}
+		cli.Close()
+	}
+}
+
+func insertInflux(cfg config.Config) {
+
 	c := client.NewInfluxClient(dump)
 
 	if !kapacitorMode {
@@ -113,11 +135,11 @@ func insertInflux(cfg config.Config) {
 	inc := int(seriesN) / int(concurrency)
 	endSplit := inc
 
-	sink := newMultiSink(int(concurrency))
-	sink.AddSink(newErrorSink(int(concurrency)))
+	sink := stress.NewMultiSink(int(concurrency))
+	sink.AddSink(stress.NewErrorSink(int(concurrency)))
 
 	if recordStats {
-		sink.AddSink(newInfluxDBSink(int(concurrency), statsHost, statsDB))
+		sink.AddSink(stress.NewInfluxDBSink(int(concurrency), statsHost, statsDB))
 	}
 
 	sink.Open()
@@ -148,7 +170,7 @@ func insertInflux(cfg config.Config) {
 			}
 
 			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.Write(pts[startSplit:endSplit], c, cfg)
+			pointsWritten, _ := stress.WriteInflux(pts[startSplit:endSplit], c, cfg)
 			atomic.AddUint64(&totalWritten, pointsWritten)
 
 			wg.Done()
@@ -171,201 +193,5 @@ func insertInflux(cfg config.Config) {
 	} else {
 		fmt.Println("Write Throughput:", throughput)
 		fmt.Println("Points Written:", totalWritten)
-	}
-}
-
-func init() {
-	rootCmd.AddCommand(insertCmd)
-
-	insertCmd.Flags().StringVarP(&statsHost, "stats-host", "", "http://localhost:8086", "Address of InfluxDB instance where runtime statistics will be recorded")
-	insertCmd.Flags().StringVarP(&statsDB, "stats-db", "", "stress_stats", "Database that statistics will be written to")
-	insertCmd.Flags().BoolVarP(&recordStats, "stats", "", false, "Record runtime statistics")
-
-	insertCmd.Flags().IntVarP(&seriesN, "series", "s", 100000, "number of series that will be written")
-	insertCmd.Flags().Uint64VarP(&pointsN, "points", "n", math.MaxUint64, "number of points that will be written")
-	insertCmd.Flags().Uint64VarP(&batchSize, "batch-size", "b", 10000, "number of points in a batch")
-	insertCmd.Flags().Uint64VarP(&pps, "pps", "", 200000, "Points Per Second")
-	insertCmd.Flags().DurationVarP(&runtime, "runtime", "r", time.Duration(math.MaxInt64), "Total time that the test will run")
-	insertCmd.Flags().DurationVarP(&tick, "tick", "", time.Second, "Amount of time between request")
-	insertCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Run as fast as possible")
-	insertCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Only print the write throughput")
-	insertCmd.Flags().BoolVarP(&kapacitorMode, "kapacitor", "k", false, "Use Kapacitor mode, namely do not try to run any queries.")
-	insertCmd.Flags().StringVar(&dump, "dump", "", "Dump to given file instead of writing over HTTP")
-	insertCmd.Flags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
-}
-
-// Sink sink interface
-type Sink interface {
-	Chan() chan stress.WriteResult
-	Open()
-	Close()
-}
-
-type errorSink struct {
-	Ch chan stress.WriteResult
-
-	wg sync.WaitGroup
-}
-
-func newErrorSink(nWriters int) *errorSink {
-	s := &errorSink{
-		Ch: make(chan stress.WriteResult, 8*nWriters),
-	}
-
-	s.wg.Add(1)
-	go s.checkErrors()
-
-	return s
-}
-
-func (s *errorSink) Open() {
-	s.wg.Add(1)
-	go s.checkErrors()
-}
-
-func (s *errorSink) Close() {
-	close(s.Ch)
-	s.wg.Wait()
-}
-
-func (s *errorSink) checkErrors() {
-	defer s.wg.Done()
-
-	const timeFormat = "[2006-01-02 15:04:05]"
-	for r := range s.Ch {
-		if r.Err != nil {
-			fmt.Fprintln(os.Stderr, time.Now().Format(timeFormat), "Error sending write:", r.Err.Error())
-			continue
-		}
-
-		if r.StatusCode != 204 {
-			fmt.Fprintln(os.Stderr, time.Now().Format(timeFormat), "Unexpected write: status", r.StatusCode, ", body:", r.Body)
-		}
-
-		// If we're running in strict mode then we give up at the first error.
-		if strict && (r.Err != nil || r.StatusCode != 204) {
-			os.Exit(1)
-		}
-	}
-}
-
-func (s *errorSink) Chan() chan stress.WriteResult {
-	return s.Ch
-}
-
-type multiSink struct {
-	sinks []Sink
-	Ch    chan stress.WriteResult
-	wg    sync.WaitGroup
-	open  bool
-}
-
-func newMultiSink(nWriters int) *multiSink {
-	return &multiSink{
-		Ch: make(chan stress.WriteResult, 8*nWriters),
-	}
-}
-
-func (s *multiSink) Chan() chan stress.WriteResult {
-	return s.Ch
-}
-
-func (s *multiSink) Open() {
-	s.open = true
-	for _, sink := range s.sinks {
-		sink.Open()
-	}
-	s.wg.Add(1)
-	go s.run()
-}
-
-func (s *multiSink) run() {
-	defer s.wg.Done()
-	const timeFormat = "[2006-01-02 15:04:05]"
-	for r := range s.Ch {
-		for _, sink := range s.sinks {
-			select {
-			case sink.Chan() <- r:
-			default:
-				fmt.Fprintln(os.Stderr, time.Now().Format(timeFormat), "Failed to send to sin")
-			}
-		}
-	}
-}
-
-func (s *multiSink) Close() {
-	close(s.Ch)
-	s.wg.Wait()
-	s.open = false
-	for _, sink := range s.sinks {
-		sink.Close()
-	}
-}
-
-func (s *multiSink) AddSink(sink Sink) error {
-	if s.open {
-		return errors.New("Cannot add sink to open multiSink")
-	}
-
-	s.sinks = append(s.sinks, sink)
-
-	return nil
-}
-
-type influxDBSink struct {
-	Ch     chan stress.WriteResult
-	client client.Client
-	buf    *bytes.Buffer
-	ticker *time.Ticker
-}
-
-func newInfluxDBSink(nWriters int, url, db string) *influxDBSink {
-	cfg := client.InfluxConfig{
-		URL:             url,
-		Database:        db,
-		RetentionPolicy: "autogen",
-		Precision:       "ns",
-		Consistency:     "any",
-		Gzip:            0,
-	}
-
-	return &influxDBSink{
-		Ch:     make(chan stress.WriteResult, 8*nWriters),
-		client: client.NewInfluxDbClient(cfg),
-		buf:    bytes.NewBuffer(nil),
-	}
-}
-
-func (s *influxDBSink) Chan() chan stress.WriteResult {
-	return s.Ch
-}
-
-func (s *influxDBSink) Open() {
-	s.ticker = time.NewTicker(time.Second)
-	err := s.client.Create()
-	if err != nil {
-		panic(err)
-	}
-
-	go s.run()
-}
-
-func (s *influxDBSink) Close() {
-}
-
-func (s *influxDBSink) run() {
-	for {
-		select {
-		case <-s.ticker.C:
-			// Write batch
-			s.client.Send(s.buf.Bytes())
-			s.buf.Reset()
-		case result := <-s.Ch:
-			// Add to batch
-			if result.Err != nil {
-				continue
-			}
-			s.buf.WriteString(fmt.Sprintf("req,status=%v latNs=%v %v\n", result.StatusCode, result.LatNs, result.Timestamp))
-		}
 	}
 }

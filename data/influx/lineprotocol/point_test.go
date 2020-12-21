@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deltacat/dbstress/lineprotocol"
+	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 )
 
 var (

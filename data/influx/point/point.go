@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/deltacat/dbstress/lineprotocol"
+	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 )
 
 // The point struct implements the lineprotocol.Point interface.

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/deltacat/dbstress/client"
-	"github.com/deltacat/dbstress/lineprotocol"
+	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 )
 
 // WriteResult contains the latency, status code, and error type
@@ -34,11 +34,11 @@ type WriteConfig struct {
 	Results  chan<- WriteResult
 }
 
-// Write takes in a slice of lineprotocol.Points, a write.Client, and a WriteConfig. It will attempt
+// WriteInflux takes in a slice of lineprotocol.Points, a write.Client, and a WriteConfig. It will attempt
 // to write data to the target until one of the following conditions is met.
 // 1. We reach that MaxPoints specified in the WriteConfig.
 // 2. We've passed the Deadline specified in the WriteConfig.
-func Write(pts []lineprotocol.Point, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
+func WriteInflux(pts []lineprotocol.Point, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
 	if cfg.Results == nil {
 		panic("Results Channel on WriteConfig cannot be nil")
 	}
@@ -84,7 +84,7 @@ WRITE_BATCHES:
 						panic(err)
 					}
 				}
-				sendBatch(c, buf, cfg.Results)
+				sendBatchInflux(c, buf, cfg.Results)
 				if doGzip {
 					// sendBatch already reset the bytes buffer.
 					// Reset the gzip writer to start clean.
@@ -115,7 +115,7 @@ WRITE_BATCHES:
 	return pointCount, time.Since(start)
 }
 
-func sendBatch(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
+func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
 	lat, status, body, err := c.Send(buf.Bytes())
 	buf.Reset()
 	select {

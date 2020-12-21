@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/deltacat/dbstress/lineprotocol"
+	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 )
 
 func TestInt_WriteTo(t *testing.T) {
