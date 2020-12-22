@@ -8,6 +8,7 @@ import (
 
 	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
+	"github.com/deltacat/dbstress/data/mysql"
 )
 
 // WriteResult contains the latency, status code, and error type
@@ -118,6 +119,51 @@ WRITE_BATCHES:
 func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
 	lat, status, body, err := c.Send(buf.Bytes())
 	buf.Reset()
+	select {
+	case ch <- WriteResult{LatNs: lat, StatusCode: status, Body: body, Err: err, Timestamp: time.Now().UnixNano()}:
+	default:
+	}
+}
+
+// WriteMySQL writes rows into mysql.
+// Simlar as influx processing, it will attempt to write data to the target until one of the following conditions is met.
+// 1. We reach that MaxPoints specified in the WriteConfig.
+// 2. We've passed the Deadline specified in the WriteConfig.
+func WriteMySQL(table mysql.Table, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
+	if cfg.Results == nil {
+		panic("Results Channel on WriteConfig cannot be nil")
+	}
+	var pointCount uint64
+
+	start := time.Now()
+	t := time.Now()
+
+	tPrev := t
+	for {
+		if t.After(cfg.Deadline) || pointCount >= cfg.MaxPoints {
+			break
+		}
+		pointCount += table.GetRowsNum()
+
+		sendBatchMySQL(c, table.GenInsertStmt(), cfg.Results)
+
+		t = <-cfg.Tick
+
+		table.Update()
+
+		// Avoid timestamp colision when batch size > pts
+		if t.After(tPrev) {
+			tPrev = t
+			continue
+		}
+		t = t.Add(1 * time.Nanosecond)
+	}
+
+	return pointCount, time.Since(start)
+}
+
+func sendBatchMySQL(c client.Client, query string, ch chan<- WriteResult) {
+	lat, status, body, err := c.SendString(query)
 	select {
 	case ch <- WriteResult{LatNs: lat, StatusCode: status, Body: body, Err: err, Timestamp: time.Now().UnixNano()}:
 	default:

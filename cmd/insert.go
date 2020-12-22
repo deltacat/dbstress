@@ -13,14 +13,15 @@ import (
 	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 	"github.com/deltacat/dbstress/data/influx/point"
+	"github.com/deltacat/dbstress/data/mysql"
 	"github.com/deltacat/dbstress/stress"
-	"github.com/deltacat/dbstress/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
 	measurement, seriesKey, fieldStr     string
+	layout                               mysql.Layout
 	statsHost, statsDB                   string
 	dump                                 string
 	seriesN                              int
@@ -116,7 +117,13 @@ func insertMysql(cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	if err = cli.Create(); err != nil {
+
+	layout, err = mysql.GenerateLayout(measurement, seriesKey, fieldStr)
+	if err != nil {
+		return err
+	}
+
+	if err = cli.Create(layout.GetCreateStmt()); err != nil {
 		return err
 	}
 
@@ -127,7 +134,7 @@ func insertInflux(cfg config.Config) error {
 	cli, _ := client.NewInfluxClient(dump)
 	defer cli.Close()
 	if !kapacitorMode {
-		if err := cli.Create(); err != nil {
+		if err := cli.Create(""); err != nil {
 			return err
 		}
 	}
@@ -217,5 +224,45 @@ func doWriteInflux(cli client.Client, gzipLevel int, resultChan chan stress.Writ
 }
 
 func doWriteMysql(cli client.Client, gzipLevel int, resultChan chan stress.WriteResult) (uint64, error) {
-	return 0, utils.ErrNotImplemented
+
+	var wg sync.WaitGroup
+	wg.Add(int(concurrency))
+
+	totalWritten := uint64(0)
+	startSplit := 0
+	inc := int(seriesN) / int(concurrency)
+	endSplit := inc
+
+	rows := mysql.GenBatchTableData(layout, batchSize)
+	for i := uint64(0); i < concurrency; i++ {
+
+		go func(startSplit, endSplit int) {
+			tick := time.Tick(tick)
+
+			if fast {
+				tick = time.Tick(time.Nanosecond)
+			}
+
+			cfg := stress.WriteConfig{
+				BatchSize: batchSize,
+				MaxPoints: pointsN / concurrency, // divide by concurreny
+				Deadline:  time.Now().Add(runtime),
+				Tick:      tick,
+				Results:   resultChan,
+			}
+
+			// Ignore duration from a single call to Write.
+			pointsWritten, _ := stress.WriteMySQL(rows, cli, cfg)
+			atomic.AddUint64(&totalWritten, pointsWritten)
+
+			wg.Done()
+		}(startSplit, endSplit)
+
+		startSplit = endSplit
+		endSplit += inc
+	}
+
+	wg.Wait()
+
+	return totalWritten, nil
 }

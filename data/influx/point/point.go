@@ -4,6 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/deltacat/dbstress/data/fieldset"
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 )
 
@@ -105,7 +106,7 @@ func (p *point) Update() {
 func NewPoints(measurement, seriesKey, fields string, seriesN int, pc lineprotocol.Precision) []lineprotocol.Point {
 	pts := []lineprotocol.Point{}
 	series := generateSeriesKeys(measurement, seriesKey, seriesN)
-	ints, floats, strs := generateFieldSet(fields)
+	ints, floats, strs := fieldset.GenerateFieldSet(fields)
 	for _, sk := range series {
 		p := build(sk, ints, floats, strs, pc)
 		pts = append(pts, p)

@@ -177,7 +177,7 @@ func (s *InfluxDBSink) Chan() chan WriteResult {
 // Open open the influxdb sink
 func (s *InfluxDBSink) Open() {
 	s.ticker = time.NewTicker(time.Second)
-	err := s.client.Create()
+	err := s.client.Create("")
 	if err != nil {
 		panic(err)
 	}

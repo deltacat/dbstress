@@ -3,7 +3,9 @@ package client
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
+	"github.com/deltacat/dbstress/utils"
 	"github.com/sirupsen/logrus"
 
 	// mysql driver
@@ -41,7 +43,11 @@ func connect(host, user, pass, database string) (*sql.DB, error) {
 	return db, nil
 }
 
-func (c *mysqlClient) Create() error {
+func (c *mysqlClient) Create(command string) error {
+	if command == "" {
+		return utils.ErrInvalidArgs
+	}
+
 	createDbStmt := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", c.cfg.Database)
 	_, err := c.db.Exec(createDbStmt)
 	if err != nil {
@@ -55,13 +61,21 @@ func (c *mysqlClient) Create() error {
 	c.db.Close()
 	c.db = db
 
-	logrus.Info("create mysql connection succeed")
+	logrus.WithField("command", command).Info("creating mysql table")
+	_, err = db.Exec(command)
 
 	return err
 }
 
 func (c *mysqlClient) Send([]byte) (latNs int64, statusCode int, body string, err error) {
-	return 0, 0, "", nil
+	return 0, 0, "", utils.ErrNotSupport
+}
+
+func (c *mysqlClient) SendString(query string) (latNs int64, statusCode int, body string, err error) {
+	start := time.Now()
+	_, err = c.db.Exec(query)
+	latNs = time.Since(start).Nanoseconds()
+	return latNs, 204, query, err
 }
 
 func (c *mysqlClient) Close() error {

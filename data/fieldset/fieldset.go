@@ -1,9 +1,9 @@
-package point
+package fieldset
 
 import "strings"
 
-// TODO: add correct error handling/panic when appropriate
-func generateFieldSet(s string) ([]string, []string, []string) {
+// GenerateFieldSet ...
+func GenerateFieldSet(s string) ([]string, []string, []string) {
 	ints := []string{}
 	floats := []string{}
 	strs := []string{}
@@ -23,4 +23,14 @@ func generateFieldSet(s string) ([]string, []string, []string) {
 	}
 
 	return ints, floats, strs
+}
+
+// GenerateTagsSet ...
+func GenerateTagsSet(tagsTmpl string) [][]string {
+	parts := strings.Split(tagsTmpl, ",")
+	tags := [][]string{}
+	for _, part := range parts {
+		tags = append(tags, strings.Split(part, "="))
+	}
+	return tags
 }

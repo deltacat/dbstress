@@ -6,8 +6,9 @@ import (
 
 // Client db connection client interface
 type Client interface {
-	Create() error
+	Create(cmd string) error
 	Send([]byte) (latNs int64, statusCode int, body string, err error)
+	SendString(query string) (latNs int64, statusCode int, body string, err error)
 	Close() error
 	Reset() error
 }

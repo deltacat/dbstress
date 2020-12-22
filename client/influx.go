@@ -49,8 +49,10 @@ func NewInfluxDbClient(cfg InfluxConfig) (Client, error) {
 	}, nil
 }
 
-func (c *client) Create() error {
-	command := "CREATE DATABASE " + c.cfg.Database
+func (c *client) Create(command string) error {
+	if command == "" {
+		command = "CREATE DATABASE " + c.cfg.Database
+	}
 
 	vals := url.Values{}
 	vals.Set("q", command)
@@ -112,6 +114,10 @@ func (c *client) Send(b []byte) (latNs int64, statusCode int, body string, err e
 	return
 }
 
+func (c *client) SendString(string) (latNs int64, statusCode int, body string, err error) {
+	return 0, 0, "", utils.ErrNotSupport
+}
+
 func (c *client) Close() error {
 	// Nothing to do.
 	return nil
@@ -146,8 +152,10 @@ func NewInfluxFileClient(path string, cfg InfluxConfig) (Client, error) {
 	return c, nil
 }
 
-func (c *influxFileClient) Create() error {
-	command := "CREATE DATABASE " + c.database
+func (c *influxFileClient) Create(command string) error {
+	if command == "" {
+		command = "CREATE DATABASE " + c.database
+	}
 	c.mu.Lock()
 	_, err := fmt.Fprintf(c.f, "# create: %s\n\n", command)
 	c.mu.Unlock()
@@ -179,6 +187,10 @@ func (c *influxFileClient) Send(b []byte) (latNs int64, statusCode int, body str
 
 	statusCode = 204
 	return
+}
+
+func (c *influxFileClient) SendString(string) (latNs int64, statusCode int, body string, err error) {
+	return 0, 0, "", utils.ErrNotSupport
 }
 
 func (c *influxFileClient) Close() error {
