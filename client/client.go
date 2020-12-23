@@ -11,6 +11,7 @@ type Client interface {
 	SendString(query string) (latNs int64, statusCode int, body string, err error)
 	Close() error
 	Reset() error
+	Name() string
 }
 
 // InfluxConfig influxdb client config

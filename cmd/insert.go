@@ -14,6 +14,7 @@ import (
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 	"github.com/deltacat/dbstress/data/influx/point"
 	"github.com/deltacat/dbstress/data/mysql"
+	"github.com/deltacat/dbstress/report"
 	"github.com/deltacat/dbstress/stress"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -95,6 +96,8 @@ func runInsert(cmd *cobra.Command, args []string) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
+	report.SetHeader([]string{"client", "action", "run", "Throughput", "Points"})
+
 	if strings.Contains(strings.ToLower(targets), "influx") {
 		logrus.Info("will insert to influxdb")
 		if err := insertInflux(cfg); err != nil {
@@ -107,6 +110,15 @@ func runInsert(cmd *cobra.Command, args []string) {
 		if err := insertMysql(cfg); err != nil {
 			logrus.WithError(err).Error("error with inserting mysql")
 		}
+	}
+
+	if !quiet {
+		fmt.Printf("\nReport: =======>\n")
+		fmt.Printf("Use point template: %s %s <timestamp>\n", seriesKey, fieldStr)
+		fmt.Printf("Use batch size of %d line(s)\n", batchSize)
+		fmt.Printf("Spreading writes across %d series\n", seriesN)
+		fmt.Printf("Use %d concurrent writer(s)\n", concurrency)
+		report.Render()
 	}
 
 }
@@ -164,14 +176,22 @@ func doInsert(cli client.Client, cfg config.Config, doWrite doWriteFunc) error {
 
 	totalTime := time.Since(start)
 	if err := cli.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error closing client: %v\n", err.Error())
+		logrus.WithError(err).Error("Error closing client")
 	}
 
 	sink.Close()
 	throughput := int(float64(totalWritten) / totalTime.Seconds())
 	if quiet {
-		logrus.Infoln(throughput)
+		fmt.Println(throughput)
 	} else {
+
+		report.Append([]string{
+			cli.Name(),
+			"insert",
+			fmt.Sprintf("%.3fs", totalTime.Seconds()),
+			fmt.Sprintf("%d", throughput),
+			fmt.Sprintf("%d", totalWritten)})
+
 		logrus.WithField("Write Throughput:", throughput).WithField("Points Written:", totalWritten).Info("run stress done")
 	}
 

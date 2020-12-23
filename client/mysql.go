@@ -61,7 +61,7 @@ func (c *mysqlClient) Create(command string) error {
 	c.db.Close()
 	c.db = db
 
-	logrus.WithField("command", command).Info("creating mysql table")
+	logrus.WithField("command", command).Debug("creating mysql table")
 	_, err = db.Exec(command)
 
 	return err
@@ -90,4 +90,8 @@ func (c *mysqlClient) Reset() error {
 	dropDbStmt := fmt.Sprintf("DROP DATABASE %s;", c.cfg.Database)
 	_, err := c.db.Exec(dropDbStmt)
 	return err
+}
+
+func (c *mysqlClient) Name() string {
+	return "MySQL"
 }

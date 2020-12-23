@@ -127,6 +127,10 @@ func (c *client) Reset() error {
 	return utils.ErrNotImplemented
 }
 
+func (c *client) Name() string {
+	return "InfluxDB"
+}
+
 type influxFileClient struct {
 	database string
 
@@ -199,6 +203,10 @@ func (c *influxFileClient) Close() error {
 
 func (c *influxFileClient) Reset() error {
 	return utils.ErrNotImplemented
+}
+
+func (c *influxFileClient) Name() string {
+	return "InfluxFile"
 }
 
 func writeURLFromConfig(cfg InfluxConfig) string {
