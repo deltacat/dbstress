@@ -11,6 +11,12 @@ type Config struct {
 		Mysql    MySQLClientConfig    `mapstructure:"mysql"`
 	} `mapstructure:"connection"`
 	Points PointsConfig `mapstructure:"points"`
+	Tests  []struct {
+		Name       string `mapstructure:"name"`
+		Type       string `mapstructure:"type"`
+		Connection string `mapstructure:"connection"`
+		Case       string `mapstructure:"case"`
+	} `mapstructure:"tests"`
 }
 
 // InfluxdbClientConfig the influxdb client config struct
