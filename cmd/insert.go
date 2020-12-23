@@ -233,7 +233,7 @@ func doWriteMysql(cli client.Client, gzipLevel int, resultChan chan stress.Write
 	inc := int(seriesN) / int(concurrency)
 	endSplit := inc
 
-	rows := mysql.GenBatchTableData(layout, batchSize)
+	tbl := mysql.NewTableChunk(layout, batchSize)
 	for i := uint64(0); i < concurrency; i++ {
 
 		go func(startSplit, endSplit int) {
@@ -252,7 +252,7 @@ func doWriteMysql(cli client.Client, gzipLevel int, resultChan chan stress.Write
 			}
 
 			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteMySQL(rows, cli, cfg)
+			pointsWritten, _ := stress.WriteMySQL(tbl, cli, cfg)
 			atomic.AddUint64(&totalWritten, pointsWritten)
 
 			wg.Done()

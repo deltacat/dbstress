@@ -3,6 +3,8 @@ package mysql
 import (
 	"fmt"
 	"strings"
+
+	"github.com/deltacat/dbstress/utils"
 )
 
 // Table table struct
@@ -21,7 +23,7 @@ func (t *Table) GenInsertStmt() string {
 
 	segs := []string{}
 	for _, v := range t.rows {
-		segs = append(segs, v.getInsertSegments())
+		segs = append(segs, t.layout.GenInsertStmtValues(v.GetColVals()))
 	}
 
 	stmt := fmt.Sprintf("INSERT INTO %s VALUES %s;", t.layout.name, strings.Join(segs, ","))
@@ -38,19 +40,19 @@ func (t *Table) buildRow() Row {
 
 // Update update table data
 func (t *Table) Update() {
-
+	str := utils.RandStrSafe(64)
+	for i := range t.rows {
+		t.rows[i] = t.layout.genRow(str)
+	}
 }
 
-// GenBatchTableData generate batch rows
-func GenBatchTableData(layout Layout, batchSize uint64) Table {
-
+// NewTableChunk generate batch rows
+func NewTableChunk(layout Layout, batchSize uint64) Table {
 	rows := make([]Row, int(batchSize))
-	for i := range rows {
-		rows[i] = layout.genRow()
-	}
-
-	return Table{
+	t := Table{
 		layout: layout,
 		rows:   rows,
 	}
+	t.Update()
+	return t
 }

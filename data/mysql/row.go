@@ -2,28 +2,16 @@ package mysql
 
 import (
 	"fmt"
-	"strings"
-	"time"
 )
 
 // Row mysql table row
 type Row struct {
-	time    time.Time
 	colVals []string
 }
 
-// SetTime ...
-func (r *Row) SetTime(t time.Time) {
-
-}
-
-// Update ...
-func (r *Row) Update() {
-
-}
-
-func (r *Row) getInsertSegments() string {
-	return fmt.Sprintf("(%s)", strings.Join(r.colVals, ","))
+// GetColVals return column values via string
+func (r *Row) GetColVals() []string {
+	return r.colVals
 }
 
 // AppendCol append column data

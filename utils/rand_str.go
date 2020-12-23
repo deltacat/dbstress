@@ -4,11 +4,11 @@ package utils
 	utils function to gen a random string
 	https://cloud.tencent.com/developer/article/1580647
 	https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
-	NOTE: not thread safe!!!
 */
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -24,6 +24,7 @@ const (
 )
 
 // RandStringBytesMaskImprSrcUnsafe gen random string
+// NOTE: not thread safe!!!
 func RandStringBytesMaskImprSrcUnsafe(n int) string {
 	b := make([]byte, n)
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
@@ -40,4 +41,21 @@ func RandStringBytesMaskImprSrcUnsafe(n int) string {
 	}
 
 	return *(*string)(unsafe.Pointer(&b))
+}
+
+var rr = rand.New(rand.NewSource(time.Now().UnixNano()))
+var randLock sync.Mutex
+
+// RandStrSafe return rand string, thread safe
+func RandStrSafe(n int) string {
+	randLock.Lock()
+	defer randLock.Unlock()
+	return RandStringBytesMaskImprSrcUnsafe(n)
+}
+
+// RandIntSafe return rand integer, thread safe
+func RandIntSafe() int {
+	randLock.Lock()
+	defer randLock.Unlock()
+	return int(rr.Int31())
 }
