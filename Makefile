@@ -59,7 +59,7 @@ clean:
 .PHONY: quick
 quick: build
 	@echo "==> Run quick insert"
-	- $(GOBIN)/$(PROJECTNAME) insert -f -r 15s
+	- $(GOBIN)/$(PROJECTNAME) insert -t mysql,influx -f -r 15s
 
 ## test: running tests
 .PHONY: test
@@ -95,3 +95,15 @@ requirements:
 	@echo ┌ setup development requirements
 	go install golang.org/x/lint/golint
 	@echo └ done
+
+## dist: build then package for release
+.PHONY: dist
+dist: build
+	@echo ┌ compressing for release
+	rm -rf $(PUBDIR)
+	mkdir -p $(PUBDIR)
+	tar --transform 's|.sample.|.|' \
+		-czf $(PUBDIR)/$(OUTFILE).tar.gz \
+		-C $(GOBIN) $(PROJECTNAME) \
+		-C $(GOBASE) $(FILES)
+	@echo └ done	

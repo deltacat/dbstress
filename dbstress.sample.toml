@@ -1,0 +1,23 @@
+[connection]
+
+[connection.influxdb]
+url = "http://127.0.0.1:8086"
+user = ""
+pass = ""
+db = "stress" # Database that will be written to
+rp = "" # Retention Policy that will be written to
+precision = "n" # Resolution of data being written
+consistency = "one"  # Write consistency (only applicable to clusters)
+tls-skip-verify = false # Skip verify in for TLS
+gzip = -1 # If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.
+
+[connection.mysql]
+host = "127.0.0.1:3306"
+user = "root"
+pass = "root"
+db = "stress"
+
+[points]
+measurement="ctr"
+series-key="some=tag,other=tag"
+fields-str="n=0i,data=str,log=64str"

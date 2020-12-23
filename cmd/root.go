@@ -9,8 +9,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "dbstress",
-	Short: "Create artificial load on an InfluxDB instance",
-	Long:  "",
+	Short: "Create artificial load on an InfluxDB/MySQL instance",
+	Long:  "This application create stress test on influxdb or mysql.\nPlease rename dbstress.sample.toml to dbstress.toml then make necessary change",
 }
 
 var targets string
