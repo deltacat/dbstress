@@ -53,9 +53,16 @@ func RandStrSafe(n int) string {
 	return RandStringBytesMaskImprSrcUnsafe(n)
 }
 
-// RandIntSafe return rand integer, thread safe
-func RandIntSafe() int {
+// RandInt31Safe return rand integer, thread safe
+func RandInt31Safe() int {
 	randLock.Lock()
 	defer randLock.Unlock()
 	return int(rr.Int31())
+}
+
+// RandInt31nSafe return rand integer, thread safe
+func RandInt31nSafe(n int32) int {
+	randLock.Lock()
+	defer randLock.Unlock()
+	return int(rr.Int31n(n))
 }
