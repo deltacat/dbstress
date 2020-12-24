@@ -59,7 +59,7 @@ clean:
 .PHONY: quick
 quick: build
 	@echo "==> Run quick insert"
-	- $(GOBIN)/$(PROJECTNAME) insert -t mysql,influx -f -r 15s
+	- $(GOBIN)/$(PROJECTNAME) insert -f -r 15s
 
 ## test: running tests
 .PHONY: test

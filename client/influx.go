@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/utils"
 	"github.com/valyala/fasthttp"
 )
@@ -24,12 +23,11 @@ type client struct {
 }
 
 // NewInfluxClient return new influx (db/file) client instance
-func NewInfluxClient(dump string) (Client, error) {
-	influxCfg := config.Cfg.Connection.Influxdb
+func NewInfluxClient(cfg InfluxConfig, dump string) (Client, error) {
 	if dump != "" {
-		return NewInfluxFileClient(dump, influxCfg)
+		return NewInfluxFileClient(dump, cfg)
 	}
-	return NewInfluxDbClient(influxCfg)
+	return NewInfluxDbClient(cfg)
 }
 
 // NewInfluxDbClient create a new influxdb client instance
@@ -128,7 +126,11 @@ func (c *client) Reset() error {
 }
 
 func (c *client) Name() string {
-	return "InfluxDB"
+	return c.cfg.Name
+}
+
+func (c *client) GzipLevel() int {
+	return c.cfg.Gzip
 }
 
 type influxFileClient struct {
@@ -207,6 +209,10 @@ func (c *influxFileClient) Reset() error {
 
 func (c *influxFileClient) Name() string {
 	return "InfluxFile"
+}
+
+func (c *influxFileClient) GzipLevel() int {
+	return 0
 }
 
 func writeURLFromConfig(cfg InfluxConfig) string {

@@ -93,5 +93,9 @@ func (c *mysqlClient) Reset() error {
 }
 
 func (c *mysqlClient) Name() string {
-	return "MySQL"
+	return c.cfg.Name
+}
+
+func (c *mysqlClient) GzipLevel() int {
+	return 0
 }

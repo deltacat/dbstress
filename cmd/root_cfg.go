@@ -79,4 +79,5 @@ func setDefaultConfig() {
 	viper.SetDefault("points.measurement", "ctr")
 	viper.SetDefault("points.series-key", "some=tag")
 	viper.SetDefault("points.fields-str", "n=0i")
+	viper.SetDefault("points.series-num", 100000)
 }

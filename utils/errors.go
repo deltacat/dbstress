@@ -8,4 +8,5 @@ var (
 	ErrNotSupport     = errors.New("not support")
 	ErrNullPointer    = errors.New("null pointer")
 	ErrInvalidArgs    = errors.New("invalid arguments")
+	ErrNotFound       = errors.New("not found")
 )

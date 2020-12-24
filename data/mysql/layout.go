@@ -32,9 +32,6 @@ func (l *Layout) GetCreateStmt() string {
 
 func (l *Layout) genColumnDDL() string {
 	cols := []string{}
-	for _, s := range l.tags {
-		cols = append(cols, s[0]+" CHAR(32)")
-	}
 	for _, s := range l.ints {
 		cols = append(cols, s+" INT")
 	}
@@ -43,6 +40,9 @@ func (l *Layout) genColumnDDL() string {
 	}
 	for _, s := range l.strs {
 		cols = append(cols, s+" CHAR(64)")
+	}
+	for _, s := range l.tags {
+		cols = append(cols, s[0]+" CHAR(32) NOT NULL DEFAULT ''")
 	}
 	if len(cols) > 0 {
 		return strings.Join(cols, ", ")
@@ -56,7 +56,7 @@ func (l *Layout) genIndexDDL() string {
 		ids = append(ids, s[0])
 	}
 	if len(ids) > 0 {
-		return fmt.Sprintf(", INDEX(%s)", strings.Join(ids, ", "))
+		return fmt.Sprintf(", INDEX idx_ss(%s)", strings.Join(ids, ", "))
 	}
 	return ""
 }

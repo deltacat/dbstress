@@ -1,26 +1,28 @@
 // Package config ...
 package config
 
+import "time"
+
 // Cfg global config holder
 var Cfg Config
 
 // Config config struct define
 type Config struct {
 	Connection struct {
-		Influxdb InfluxdbClientConfig `mapstructure:"influxdb"`
-		Mysql    MySQLClientConfig    `mapstructure:"mysql"`
+		InfluxDB []InfluxClientConfig `mapstructure:"influxdb"`
+		MySQL    []MySQLClientConfig  `mapstructure:"mysql"`
 	} `mapstructure:"connection"`
 	Points PointsConfig `mapstructure:"points"`
-	Tests  []struct {
-		Name       string `mapstructure:"name"`
-		Type       string `mapstructure:"type"`
-		Connection string `mapstructure:"connection"`
-		Case       string `mapstructure:"case"`
-	} `mapstructure:"tests"`
+	Cases  struct {
+		Delay time.Duration `mapstructure:"delay"`
+		Cases []CaseConfig  `mapstructure:"case"`
+	} `mapstructure:"cases"`
 }
 
-// InfluxdbClientConfig the influxdb client config struct
-type InfluxdbClientConfig struct {
+// InfluxClientConfig the influxdb client config struct
+type InfluxClientConfig struct {
+	Name            string `mapstructure:"name"`
+	Default         bool   `mapstructure:"default"`
 	URL             string `mapstructure:"url"`
 	Database        string `mapstructure:"db"`
 	RetentionPolicy string `mapstructure:"rp"`
@@ -34,6 +36,8 @@ type InfluxdbClientConfig struct {
 
 // MySQLClientConfig mysql client config
 type MySQLClientConfig struct {
+	Name     string `mapstructure:"name"`
+	Default  bool   `mapstructure:"default"`
 	Host     string `mapstructure:"host"`
 	User     string `mapstructure:"user"`
 	Pass     string `mapstructure:"pass"`
@@ -45,4 +49,15 @@ type PointsConfig struct {
 	Measurement string `mapstructure:"measurement"`
 	SeriesKey   string `mapstructure:"series-key"`
 	FieldsStr   string `mapstructure:"fields-str"`
+	SeriesN     int    `mapstructure:"series-num"`
+	PointsN     uint64 `mapstructure:"points-num"`
+}
+
+// CaseConfig test case config
+type CaseConfig struct {
+	Name       string        `mapstructure:"name"`
+	Connection string        `mapstructure:"connection"`
+	Concurrent int           `mapstructure:"concurrent"`
+	BatchSize  int           `mapstructure:"batch-size"`
+	Runtime    time.Duration `mapstructure:"runtime"`
 }

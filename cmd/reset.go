@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/deltacat/dbstress/client"
 	"github.com/deltacat/dbstress/config"
 	"github.com/sirupsen/logrus"
@@ -24,24 +22,25 @@ func init() {
 }
 
 func runReset(cmd *cobra.Command, args []string) {
-	if strings.Contains(strings.ToLower(targets), "influx") {
-		if err := resetInflux(config.Cfg); err == nil {
-			logrus.Info("influxdb reseted")
-		} else {
-			logrus.WithError(err).Error("influxdb reset failed")
-		}
+	if err := resetInflux(config.Cfg); err == nil {
+		logrus.Info("influxdb reseted")
+	} else {
+		logrus.WithError(err).Error("influxdb reset failed")
 	}
-	if strings.Contains(strings.ToLower(targets), "mysql") {
-		if err := resetMySQL(config.Cfg); err == nil {
-			logrus.Info("mysql reseted")
-		} else {
-			logrus.WithError(err).Error("mysql reset failed")
-		}
+	if err := resetMySQL(config.Cfg); err == nil {
+		logrus.Info("mysql reseted")
+	} else {
+		logrus.WithError(err).Error("mysql reset failed")
 	}
 }
 
 func resetInflux(cfg config.Config) error {
-	c, err := client.NewInfluxClient(dump)
+	cc, err := cfg.FindDefaultInfluxDBConnection()
+	if err != nil {
+		return err
+	}
+
+	c, err := client.NewInfluxClient(cc, dump)
 	if err != nil {
 		return err
 	}
@@ -49,7 +48,11 @@ func resetInflux(cfg config.Config) error {
 }
 
 func resetMySQL(cfg config.Config) error {
-	c, err := client.NewMySQLClient(cfg.Connection.Mysql)
+	cc, err := cfg.FindDefaultMySQLConnection()
+	if err != nil {
+		return err
+	}
+	c, err := client.NewMySQLClient(cc)
 	if err != nil {
 		return err
 	}
