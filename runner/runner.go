@@ -20,6 +20,8 @@ var (
 	fast, quiet, kapacitorMode bool
 	pointsCfg                  config.PointsConfig
 	pointsN                    uint64
+	statsHost, statsDB         string
+	recordStats                bool
 )
 
 // Runner runner interface
@@ -37,11 +39,14 @@ type caseRunner struct {
 type doWriteFunc func(resultChan chan stress.WriteResult) (uint64, error)
 
 // Setup runner context
-func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg config.PointsConfig) {
+func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg config.PointsConfig, statsCfg config.StatsRecordConfig) {
 	tick = _tick
 	fast = _fast
 	quiet = _quiet
 	kapacitorMode = _kapacitorMode
+	recordStats = statsCfg.Enable
+	statsHost = statsCfg.Host
+	statsDB = statsCfg.Database
 	pointsCfg = ptsCfg
 	if pointsCfg.PointsN == 0 {
 		pointsN = math.MaxUint64
@@ -92,10 +97,9 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 	sink := stress.NewMultiSink(r.concurrency)
 	sink.AddSink(stress.NewErrorSink(r.concurrency))
 
-	// todo
-	// if recordStats {
-	// 	sink.AddSink(stress.NewInfluxDBSink(int(concurrency), statsHost, statsDB))
-	// }
+	if recordStats {
+		sink.AddSink(stress.NewInfluxDBSink(int(r.concurrency), statsHost, statsDB))
+	}
 
 	sink.Open()
 

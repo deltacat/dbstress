@@ -8,7 +8,8 @@ var Cfg Config
 
 // Config config struct define
 type Config struct {
-	Connection struct {
+	StatsRecord StatsRecordConfig `mapstructure:"stats-record"`
+	Connection  struct {
 		InfluxDB []InfluxClientConfig `mapstructure:"influxdb"`
 		MySQL    []MySQLClientConfig  `mapstructure:"mysql"`
 	} `mapstructure:"connection"`
@@ -17,6 +18,13 @@ type Config struct {
 		Delay time.Duration `mapstructure:"delay"`
 		Cases []CaseConfig  `mapstructure:"case"`
 	} `mapstructure:"cases"`
+}
+
+// StatsRecordConfig stats record config
+type StatsRecordConfig struct {
+	Enable   bool   `mapstructure:"enable"`   // Record runtime statistics
+	Host     string `mapstructure:"host"`     // Address of InfluxDB instance where runtime statistics will be recorded
+	Database string `mapstructure:"database"` // Database that statistics will be written to
 }
 
 // InfluxClientConfig the influxdb client config struct

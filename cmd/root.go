@@ -20,8 +20,6 @@ var rootCmd = &cobra.Command{
 
 var (
 	cfg                              config.Config // global configure holder
-	statsHost, statsDB               string
-	recordStats                      bool
 	measurement, seriesKey, fieldStr string
 	pps                              uint64
 	tick                             time.Duration
@@ -42,10 +40,6 @@ func Execute(v VersionInfo) {
 func init() {
 	cobra.OnInitialize(initConfig)
 	setDefaultConfig()
-
-	rootCmd.PersistentFlags().StringVarP(&statsHost, "stats-host", "", "http://localhost:8086", "Address of InfluxDB instance where runtime statistics will be recorded")
-	rootCmd.PersistentFlags().StringVarP(&statsDB, "stats-db", "", "stress_stats", "Database that statistics will be written to")
-	rootCmd.PersistentFlags().BoolVarP(&recordStats, "stats", "", false, "Record runtime statistics")
 
 	rootCmd.PersistentFlags().Uint64VarP(&pps, "pps", "", 200000, "Points Per Second")
 	rootCmd.PersistentFlags().DurationVarP(&tick, "tick", "", time.Second, "Amount of time between request")

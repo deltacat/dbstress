@@ -61,6 +61,11 @@ func viperBindEnvs(iface interface{}, parts ...string) {
 }
 
 func setDefaultConfig() {
+
+	viper.SetDefault("stats-record.host", "http://localhost:8086")
+	viper.SetDefault("stats-record.database", "stress_stats")
+	viper.SetDefault("stats-record.enable", false)
+
 	viper.SetDefault("connection.influxdb.url", "http://127.0.0.1:8086")
 	viper.SetDefault("connection.influxdb.user", "")
 	viper.SetDefault("connection.influxdb.pass", "")

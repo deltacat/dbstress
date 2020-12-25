@@ -40,7 +40,7 @@ func init() {
 
 func runInsert(cmd *cobra.Command, args []string) {
 
-	runner.Setup(tick, fast, quiet, kapacitorMode, cfg.Points)
+	runner.Setup(tick, fast, quiet, kapacitorMode, cfg.Points, cfg.StatsRecord)
 	defer runner.Close()
 
 	concurrency = pps / batchSize
