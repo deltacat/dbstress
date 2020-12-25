@@ -65,7 +65,7 @@ func runCases(cmd *cobra.Command, args []string) {
 
 	if !quiet {
 		fmt.Printf("\nReport: =======>\n")
-		fmt.Printf("Use point template: %s %s <timestamp>\n", seriesKey, fieldStr)
+		fmt.Printf("Use point template: %s %s <timestamp>\n\n", seriesKey, fieldStr)
 		report.SetHeader([]string{"case", "connection", "action", "concurrency", "batch size", "run", "run", "throughput", "points"})
 		report.Render()
 	}
