@@ -3,7 +3,7 @@ package cmd
 import (
 	"time"
 
-	"github.com/deltacat/dbstress/cmd/runner"
+	"github.com/deltacat/dbstress/runner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
