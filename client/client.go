@@ -12,7 +12,8 @@ type Client interface {
 	Close() error
 	Reset() error
 	Name() string
-	GzipLevel() int // temp function for refactoring
+	Connection() string // return connection to check
+	GzipLevel() int     // temp function for refactoring
 }
 
 // InfluxConfig influxdb client config

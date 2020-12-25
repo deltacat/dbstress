@@ -81,7 +81,7 @@ func (c *mysqlClient) SendString(query string) (latNs int64, statusCode int, bod
 func (c *mysqlClient) Close() error {
 	if c.db != nil {
 		c.db.Close()
-		logrus.Info("mysql client closed")
+		logrus.Debug("mysql client closed")
 	}
 	return nil
 }
@@ -94,6 +94,10 @@ func (c *mysqlClient) Reset() error {
 
 func (c *mysqlClient) Name() string {
 	return c.cfg.Name
+}
+
+func (c *mysqlClient) Connection() string {
+	return c.cfg.Host
 }
 
 func (c *mysqlClient) GzipLevel() int {

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -129,6 +130,11 @@ func (c *client) Name() string {
 	return c.cfg.Name
 }
 
+func (c *client) Connection() string {
+	ps := strings.Split(c.cfg.URL, "//")
+	return ps[len(ps)-1]
+}
+
 func (c *client) GzipLevel() int {
 	return c.cfg.Gzip
 }
@@ -138,12 +144,15 @@ type influxFileClient struct {
 
 	mu    sync.Mutex
 	f     *os.File
+	path  string
 	batch uint
 }
 
 // NewInfluxFileClient create a file client for influxdb
 func NewInfluxFileClient(path string, cfg InfluxConfig) (Client, error) {
-	c := &influxFileClient{}
+	c := &influxFileClient{
+		path: path,
+	}
 
 	var err error
 	c.f, err = os.Create(path)
@@ -209,6 +218,10 @@ func (c *influxFileClient) Reset() error {
 
 func (c *influxFileClient) Name() string {
 	return "InfluxFile"
+}
+
+func (c *influxFileClient) Connection() string {
+	return c.path
 }
 
 func (c *influxFileClient) GzipLevel() int {

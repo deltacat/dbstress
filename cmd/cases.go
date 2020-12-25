@@ -56,19 +56,17 @@ func runCases(cmd *cobra.Command, args []string) {
 
 	for i, r := range runners {
 		if i > 0 {
-			logrus.WithField("delay", delay).Info("delay for next case")
+			logrus.WithField("delay", delay).Info("finished case, delay for next")
 			<-time.Tick(delay)
 		}
+		logrus.WithFields(logrus.Fields(r.Info())).Info("running case")
 		r.Run()
 	}
 
 	if !quiet {
 		fmt.Printf("\nReport: =======>\n")
 		fmt.Printf("Use point template: %s %s <timestamp>\n", seriesKey, fieldStr)
-		fmt.Printf("Use batch size of %d line(s)\n", batchSize)
-		fmt.Printf("Spreading writes across %d series\n", seriesN)
-		fmt.Printf("Use %d concurrent writer(s)\n", concurrency)
-		report.SetHeader([]string{"case", "connection", "action", "concurrency", "batch size", "run", "throughput", "points"})
+		report.SetHeader([]string{"case", "connection", "action", "concurrency", "batch size", "run", "run", "throughput", "points"})
 		report.Render()
 	}
 

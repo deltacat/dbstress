@@ -50,7 +50,7 @@ func (c *Config) FindMySQLConnection(name string) (MySQLClientConfig, error) {
 func (c *Config) FindInfluxDBConnection(name string) (InfluxClientConfig, error) {
 	v := c.Connection.InfluxDB
 	for _, sc := range v {
-		if sc.Default {
+		if strings.EqualFold(sc.Name, name) {
 			return sc, nil
 		}
 	}

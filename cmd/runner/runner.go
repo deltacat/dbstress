@@ -23,6 +23,7 @@ var (
 // Runner runner interface
 type Runner interface {
 	Run() error
+	Info() map[string]interface{}
 }
 
 type caseRunner struct {
@@ -74,19 +75,24 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 	if quiet {
 		fmt.Println(throughput)
 	} else {
-
 		report.Append([]string{
-			r.cli.Name(),
-			r.cfg.Connection,
+			r.cfg.Name,
+			r.cli.Connection(),
 			"insert",
 			fmt.Sprintf("%d", r.concurrency),
 			fmt.Sprintf("%d", r.cfg.BatchSize),
+			fmt.Sprintf("%.3fs", r.cfg.Runtime.Seconds()),
 			fmt.Sprintf("%.3fs", totalTime.Seconds()),
 			fmt.Sprintf("%d", throughput),
 			fmt.Sprintf("%d", totalWritten)})
-
-		logrus.WithField("Write Throughput:", throughput).WithField("Points Written:", totalWritten).Info("run stress done")
 	}
 
 	return err
+}
+
+func (r *caseRunner) Info() map[string]interface{} {
+	return map[string]interface{}{
+		"name":       r.cfg.Name,
+		"connection": r.cli.Connection(),
+	}
 }
