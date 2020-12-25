@@ -1,5 +1,10 @@
 # change log
 
+## v0.2.0 2020-12-25
+
+- add "cases" mode
+- optimize report
+
 ## v0.1.0 2020-12-23
 
 - lots of refactoring

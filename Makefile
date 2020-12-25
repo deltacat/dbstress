@@ -16,7 +16,7 @@ endif
 
 PROJECTBASE	:= $(GOBASE)/$(PROJPATH)
 PROJECTNAME	?= $(shell basename "$(PROJECTBASE)")
-OUTFILE		:= "$(PROJECTNAME)_$(shell go env GOARCH)_v$(PROJECTVER)-$(shell date +%Y%m%d%H%M%S)"
+OUTFILE		:= "$(PROJECTNAME)_$(shell go env GOARCH)_v$(PROJECTVER)-$(REVER)-$(shell date +%Y%m%d%H%M%S)"
 
 # Make is verbose in Linux. Make it silent.
 MAKEFLAGS += --silent
@@ -100,7 +100,6 @@ requirements:
 .PHONY: dist
 dist: build
 	@echo ┌ compressing for release
-	rm -rf $(PUBDIR)
 	mkdir -p $(PUBDIR)
 	tar --transform 's|.sample.|.|' \
 		-czf $(PUBDIR)/$(OUTFILE).tar.gz \
