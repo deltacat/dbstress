@@ -55,28 +55,28 @@ delay = "5s" # delay between cases
 
 [[cases.case]]
 name = "Influx SSD"
-connection = "Influx SSD"
+connection = "Influx1.8 SSD"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
 
 [[cases.case]]
 name = "Influx HDD"
-connection = "Influx HDD"
+connection = "Influx1.8 HDD"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
 
 [[cases.case]]
 name = "MySQL SSD"
-connection = "MySQL SSD"
+connection = "MySQL8 SSD"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
 
 [[cases.case]]
 name = "MySQL HDD"
-connection = "MySQL HDD"
+connection = "MySQL8 HDD"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"

@@ -3,16 +3,12 @@ package cmd
 import (
 	"fmt"
 	"math"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/deltacat/dbstress/client"
-	"github.com/deltacat/dbstress/data/influx/lineprotocol"
-	"github.com/deltacat/dbstress/data/influx/point"
+	"github.com/deltacat/dbstress/cmd/runner"
+	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/data/mysql"
-	"github.com/deltacat/dbstress/report"
-	"github.com/deltacat/dbstress/stress"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -44,6 +40,9 @@ func init() {
 
 func runInsert(cmd *cobra.Command, args []string) {
 
+	runner.Setup(tick, fast, quiet, kapacitorMode, cfg.Points)
+	defer runner.Close()
+
 	concurrency = pps / batchSize
 	// PPS takes precedence over batchSize.
 	// Adjust accordingly.
@@ -65,8 +64,6 @@ func runInsert(cmd *cobra.Command, args []string) {
 		fmt.Printf("Running until ~%d points sent or until ~%v has elapsed\n", pointsN, runtime)
 	}
 
-	report.SetHeader([]string{"client", "action", "run", "Throughput", "Points"})
-
 	logrus.Info("will insert to influxdb")
 	if err := insertInflux(); err != nil {
 		logrus.WithError(err).Error("error with inserting influxdb")
@@ -74,15 +71,6 @@ func runInsert(cmd *cobra.Command, args []string) {
 	logrus.Info("will insert to mysql")
 	if err := insertMysql(); err != nil {
 		logrus.WithError(err).Error("error with inserting mysql")
-	}
-
-	if !quiet {
-		fmt.Printf("\nReport: =======>\n")
-		fmt.Printf("Use point template: %s %s <timestamp>\n", seriesKey, fieldStr)
-		fmt.Printf("Use batch size of %d line(s)\n", batchSize)
-		fmt.Printf("Spreading writes across %d series\n", seriesN)
-		fmt.Printf("Use %d concurrent writer(s)\n", concurrency)
-		report.Render()
 	}
 
 }
@@ -108,17 +96,25 @@ func insertMysql() error {
 		return err
 	}
 
-	return doInsert(cli, doWriteMysql)
+	cs := config.CaseConfig{
+		Name:       "Insert MySQL",
+		Connection: cc.Name,
+		Concurrent: int(concurrency),
+		BatchSize:  int(batchSize),
+		Runtime:    runtime,
+	}
+
+	r := runner.NewMySQLRunner(cli, cs, layout)
+	return r.Run()
 }
 
 func insertInflux() error {
-
-	c, err := cfg.FindDefaultInfluxDBConnection()
+	cc, err := cfg.FindDefaultInfluxDBConnection()
 	if err != nil {
 		return err
 	}
 
-	cli, _ := client.NewInfluxClient(c, dump)
+	cli, _ := client.NewInfluxClient(cc, dump)
 	defer cli.Close()
 	if !kapacitorMode {
 		if err := cli.Create(""); err != nil {
@@ -126,137 +122,14 @@ func insertInflux() error {
 		}
 	}
 
-	return doInsert(cli, doWriteInflux)
-}
-
-type doWriteFunc func(cli client.Client, resultChan chan stress.WriteResult) (uint64, error)
-
-func doInsert(cli client.Client, doWrite doWriteFunc) error {
-
-	sink := stress.NewMultiSink(int(concurrency))
-	sink.AddSink(stress.NewErrorSink(int(concurrency)))
-
-	if recordStats {
-		sink.AddSink(stress.NewInfluxDBSink(int(concurrency), statsHost, statsDB))
+	cs := config.CaseConfig{
+		Name:       "Insert Influx",
+		Connection: cc.Name,
+		Concurrent: int(concurrency),
+		BatchSize:  int(batchSize),
+		Runtime:    runtime,
 	}
+	r := runner.NewInfluxRunner(cli, cs)
 
-	sink.Open()
-
-	var wg sync.WaitGroup
-	wg.Add(int(concurrency))
-
-	start := time.Now()
-
-	totalWritten, err := doWrite(cli, sink.Chan())
-
-	totalTime := time.Since(start)
-	if err := cli.Close(); err != nil {
-		logrus.WithError(err).Error("Error closing client")
-	}
-
-	sink.Close()
-	throughput := int(float64(totalWritten) / totalTime.Seconds())
-	if quiet {
-		fmt.Println(throughput)
-	} else {
-
-		report.Append([]string{
-			cli.Name(),
-			"insert",
-			fmt.Sprintf("%.3fs", totalTime.Seconds()),
-			fmt.Sprintf("%d", throughput),
-			fmt.Sprintf("%d", totalWritten)})
-
-		logrus.WithField("Write Throughput:", throughput).WithField("Points Written:", totalWritten).Info("run stress done")
-	}
-
-	return err
-}
-
-func doWriteInflux(cli client.Client, resultChan chan stress.WriteResult) (uint64, error) {
-	var wg sync.WaitGroup
-	wg.Add(int(concurrency))
-
-	var totalWritten uint64
-	startSplit := 0
-	inc := int(seriesN) / int(concurrency)
-	endSplit := inc
-
-	pts := point.NewPoints(measurement, seriesKey, fieldStr, seriesN, lineprotocol.Nanosecond)
-	for i := uint64(0); i < concurrency; i++ {
-
-		go func(startSplit, endSplit int) {
-			tick := time.Tick(tick)
-
-			if fast {
-				tick = time.Tick(time.Nanosecond)
-			}
-
-			cfg := stress.WriteConfig{
-				BatchSize: batchSize,
-				MaxPoints: pointsN / concurrency, // divide by concurreny
-				GzipLevel: cli.GzipLevel(),
-				Deadline:  time.Now().Add(runtime),
-				Tick:      tick,
-				Results:   resultChan,
-			}
-
-			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteInflux(pts[startSplit:endSplit], cli, cfg)
-			atomic.AddUint64(&totalWritten, pointsWritten)
-
-			wg.Done()
-		}(startSplit, endSplit)
-
-		startSplit = endSplit
-		endSplit += inc
-	}
-
-	wg.Wait()
-
-	return totalWritten, nil
-}
-
-func doWriteMysql(cli client.Client, resultChan chan stress.WriteResult) (uint64, error) {
-
-	var wg sync.WaitGroup
-	wg.Add(int(concurrency))
-
-	totalWritten := uint64(0)
-	startSplit := 0
-	inc := int(seriesN) / int(concurrency)
-	endSplit := inc
-
-	tbl := mysql.NewTableChunk(layout, batchSize)
-	for i := uint64(0); i < concurrency; i++ {
-
-		go func(startSplit, endSplit int) {
-			tick := time.Tick(tick)
-
-			if fast {
-				tick = time.Tick(time.Nanosecond)
-			}
-
-			cfg := stress.WriteConfig{
-				BatchSize: batchSize,
-				MaxPoints: pointsN / concurrency, // divide by concurreny
-				Deadline:  time.Now().Add(runtime),
-				Tick:      tick,
-				Results:   resultChan,
-			}
-
-			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteMySQL(tbl, cli, cfg)
-			atomic.AddUint64(&totalWritten, pointsWritten)
-
-			wg.Done()
-		}(startSplit, endSplit)
-
-		startSplit = endSplit
-		endSplit += inc
-	}
-
-	wg.Wait()
-
-	return totalWritten, nil
+	return r.Run()
 }
