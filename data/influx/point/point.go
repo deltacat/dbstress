@@ -6,6 +6,7 @@ import (
 
 	"github.com/deltacat/dbstress/data/fieldset"
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
+	"github.com/deltacat/dbstress/utils"
 )
 
 // The point struct implements the lineprotocol.Point interface.
@@ -58,9 +59,7 @@ func build(sk []byte, ints, floats []string, strs []string, p lineprotocol.Preci
 
 // rand string is time expensive
 func genString() string {
-	// len := 64
-	// return randstr.String(len)
-	return "zze6TQ2TfpJPb0UVLs3FckJtuXhTQVVNIFtTrJEEWoFJxFukX3alzbiV2dq4RidR"
+	return utils.RandStrSafe(utils.StrDataLength)
 }
 
 // Series returns the series key for a point.

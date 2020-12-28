@@ -61,16 +61,21 @@ func (l *Layout) genIndexDDL() string {
 	return ""
 }
 
-func (l *Layout) genRow(str string) Row {
+func (l *Layout) genRow(intVal int, floatVal float32, str string) Row {
 	r := Row{}
+	iv := intVal
+	fv := floatVal
+	sv := str
 	for range l.ints {
-		r.AppendCol(utils.RandInt31Safe())
+		iv++
+		r.AppendCol(iv)
 	}
 	for range l.floats {
-		r.AppendCol(utils.RandInt31Safe())
+		fv += 0.1
+		r.AppendCol(fv)
 	}
 	for range l.strs {
-		r.AppendCol("'" + str + "'")
+		r.AppendCol("'" + sv + "'")
 	}
 	for _, t := range l.tags {
 		r.AppendCol(fmt.Sprintf("'%s-%d'", t[1], utils.RandInt31nSafe(300)))

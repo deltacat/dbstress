@@ -9,8 +9,11 @@ import (
 
 // Table table struct
 type Table struct {
-	layout Layout
-	rows   []Row
+	layout     Layout
+	rows       []Row
+	strValue   string
+	intValue   int
+	floatValue float32
 }
 
 // GetRowsNum get number of rows
@@ -30,19 +33,13 @@ func (t *Table) GenInsertStmt() string {
 	return stmt
 }
 
-func (t *Table) buildRow() Row {
-	r := Row{}
-	for _, c := range t.layout.ints {
-		r.AppendCol(c)
-	}
-	return r
-}
-
 // Update update table data
 func (t *Table) Update() {
-	str := utils.RandStrSafe(64)
+	t.strValue = utils.RandStrSafe(utils.StrDataLength)
+	t.intValue++
+	t.floatValue += 0.1
 	for i := range t.rows {
-		t.rows[i] = t.layout.genRow(str)
+		t.rows[i] = t.layout.genRow(t.intValue, t.floatValue, t.strValue)
 	}
 }
 

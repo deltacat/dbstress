@@ -8,14 +8,19 @@ package utils
 
 import (
 	"math/rand"
-	"sync"
 	"time"
 	"unsafe"
 )
 
+// StrDataLength string data length
+const StrDataLength int = 64
+
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 var src = rand.NewSource(time.Now().UnixNano())
+var testStrs []string
+var testStrNum int32 = 100000
+var testStrIdx int32 = 0
 
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
@@ -25,7 +30,7 @@ const (
 
 // RandStringBytesMaskImprSrcUnsafe gen random string
 // NOTE: not thread safe!!!
-func RandStringBytesMaskImprSrcUnsafe(n int) string {
+func randStringBytesMaskImprSrcUnsafe(n int) string {
 	b := make([]byte, n)
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
@@ -44,25 +49,30 @@ func RandStringBytesMaskImprSrcUnsafe(n int) string {
 }
 
 var rr = rand.New(rand.NewSource(time.Now().UnixNano()))
-var randLock sync.Mutex
 
-// RandStrSafe return rand string, thread safe
-func RandStrSafe(n int) string {
-	randLock.Lock()
-	defer randLock.Unlock()
-	return RandStringBytesMaskImprSrcUnsafe(n)
+// RandStrSafe return rand string
+// to save generating time while run test, init a random string before run test.
+// here only pick one of them from predefined strings.
+// idx is not thread safe but could be ignore
+func RandStrSafe(n int) (result string) {
+	result = testStrs[testStrIdx]
+	idx := testStrIdx
+	idx++
+	if idx >= testStrNum {
+		idx = 0
+	}
+	testStrIdx = idx
+	return
 }
 
-// RandInt31Safe return rand integer, thread safe
-func RandInt31Safe() int {
-	randLock.Lock()
-	defer randLock.Unlock()
-	return int(rr.Int31())
-}
-
-// RandInt31nSafe return rand integer, thread safe
+// RandInt31nSafe return rand integer
 func RandInt31nSafe(n int32) int {
-	randLock.Lock()
-	defer randLock.Unlock()
 	return int(rr.Int31n(n))
+}
+
+func init() {
+	testStrs = make([]string, testStrNum)
+	for i := range testStrs {
+		testStrs[i] = randStringBytesMaskImprSrcUnsafe(StrDataLength)
+	}
 }
