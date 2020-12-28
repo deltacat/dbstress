@@ -1,5 +1,11 @@
 # change log
 
+## v0.2.1 2020-12-28
+
+- support select cases to run
+- optimize test data generation
+- support reset all databases which in config file
+
 ## v0.2.0 2020-12-25
 
 - add "cases" mode

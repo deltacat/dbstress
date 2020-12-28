@@ -48,6 +48,11 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&kapacitorMode, "kapacitor", "k", false, "Use Kapacitor mode, namely do not try to run any queries.")
 	rootCmd.PersistentFlags().BoolVarP(&strict, "strict", "", false, "Strict mode will exit as soon as an error or unexpected status is encountered")
 
+	loggerFormatter := new(logrus.TextFormatter)
+	loggerFormatter.TimestampFormat = "2006-01-02 15:04:05"
+	loggerFormatter.FullTimestamp = true
+	loggerFormatter.PadLevelText = true
+	logrus.SetFormatter(loggerFormatter)
 }
 
 func runRootPersistentPre(cmd *cobra.Command, args []string) {
