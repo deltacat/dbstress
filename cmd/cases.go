@@ -30,7 +30,10 @@ func runCases(cmd *cobra.Command, args []string) {
 	runner.Setup(tick, fast, quiet, kapacitorMode, cfg.Points, cfg.StatsRecord)
 	defer runner.Close()
 
-	casesToRun := strings.Split(casesToRunStr, ",")
+	casesToRun := []string{}
+	if casesToRunStr != "" {
+		casesToRun = strings.Split(casesToRunStr, ",")
+	}
 
 	runners := runner.BuildAllRunners(cfg, casesToRun)
 	logrus.WithField("cases", casesToRun).WithField("build", len(runners)).Infof("build runner from cases config, start run")

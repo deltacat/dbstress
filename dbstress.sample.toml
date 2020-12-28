@@ -45,7 +45,7 @@ db = "stress"
 [points]
 measurement = "ctr"
 series-key = "some=tag,other=tag"
-fields-str = "n=0i,data=str,log=64str"
+fields-str = "n=0i,data=str,log=str"
 
 
 # pending cases to run
