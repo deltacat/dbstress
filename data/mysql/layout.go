@@ -2,10 +2,10 @@ package mysql
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/deltacat/dbstress/data/fieldset"
-	"github.com/deltacat/dbstress/utils"
 )
 
 // Layout mysql table layout definition
@@ -61,7 +61,7 @@ func (l *Layout) genIndexDDL() string {
 	return ""
 }
 
-func (l *Layout) genRow(intVal int, floatVal float32, str string) Row {
+func (l *Layout) genRow(intVal int, floatVal float32, str string, rd *rand.Rand) Row {
 	r := Row{}
 	iv := intVal
 	fv := floatVal
@@ -78,7 +78,7 @@ func (l *Layout) genRow(intVal int, floatVal float32, str string) Row {
 		r.AppendCol("'" + sv + "'")
 	}
 	for _, t := range l.tags {
-		r.AppendCol(fmt.Sprintf("'%s-%d'", t[1], utils.RandInt31nSafe(300)))
+		r.AppendCol(fmt.Sprintf("'%s-%d'", t[1], rd.Int31n(300)))
 	}
 	return r
 }

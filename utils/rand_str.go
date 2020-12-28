@@ -48,8 +48,6 @@ func randStringBytesMaskImprSrcUnsafe(n int) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-var rr = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 // RandStrSafe return rand string
 // to save generating time while run test, init a random string before run test.
 // here only pick one of them from predefined strings.
@@ -63,11 +61,6 @@ func RandStrSafe(n int) (result string) {
 	}
 	testStrIdx = idx
 	return
-}
-
-// RandInt31nSafe return rand integer
-func RandInt31nSafe(n int32) int {
-	return int(rr.Int31n(n))
 }
 
 func init() {

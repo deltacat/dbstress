@@ -129,7 +129,7 @@ func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) 
 // Simlar as influx processing, it will attempt to write data to the target until one of the following conditions is met.
 // 1. We reach that MaxPoints specified in the WriteConfig.
 // 2. We've passed the Deadline specified in the WriteConfig.
-func WriteMySQL(table mysql.Table, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
+func WriteMySQL(table mysql.TableChunk, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
 	if cfg.Results == nil {
 		panic("Results Channel on WriteConfig cannot be nil")
 	}
@@ -140,6 +140,8 @@ func WriteMySQL(table mysql.Table, c client.Client, cfg WriteConfig) (uint64, ti
 
 	tPrev := t
 	for {
+		table.Update()
+
 		if t.After(cfg.Deadline) || pointCount >= cfg.MaxPoints {
 			break
 		}
@@ -148,8 +150,6 @@ func WriteMySQL(table mysql.Table, c client.Client, cfg WriteConfig) (uint64, ti
 		sendBatchMySQL(c, table.GenInsertStmt(), cfg.Results)
 
 		t = <-cfg.Tick
-
-		table.Update()
 
 		// Avoid timestamp colision when batch size > pts
 		if t.After(tPrev) {

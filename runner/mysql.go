@@ -50,10 +50,11 @@ func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, 
 	inc := int(seriesN) / int(r.concurrency)
 	endSplit := inc
 
-	tbl := mysql.NewTableChunk(r.layout, uint64(r.cfg.BatchSize))
 	for i := uint64(0); i < uint64(r.concurrency); i++ {
 
 		go func(startSplit, endSplit int) {
+			tbl := mysql.NewTableChunk(r.layout, uint64(r.cfg.BatchSize))
+
 			tick := time.Tick(tick)
 
 			if fast {
