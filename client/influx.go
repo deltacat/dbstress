@@ -52,9 +52,12 @@ func (c *client) Create(command string) error {
 	if command == "" {
 		command = "CREATE DATABASE " + c.cfg.Database
 	}
+	return c.sendCmd(command)
+}
 
+func (c *client) sendCmd(cmd string) error {
 	vals := url.Values{}
-	vals.Set("q", command)
+	vals.Set("q", cmd)
 	u, err := url.Parse(c.cfg.URL)
 	if err != nil {
 		return err
@@ -71,8 +74,8 @@ func (c *client) Create(command string) error {
 	if resp.StatusCode != 200 {
 		body, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf(
-			"Bad status code during Create(%s): %d, body: %s",
-			command, resp.StatusCode, string(body),
+			"Bad status code during execute cmd (%s): %d, body: %s",
+			cmd, resp.StatusCode, string(body),
 		)
 	}
 
@@ -123,7 +126,7 @@ func (c *client) Close() error {
 }
 
 func (c *client) Reset() error {
-	return utils.ErrNotImplemented
+	return c.sendCmd("DROP DATABASE " + c.cfg.Database)
 }
 
 func (c *client) Name() string {
