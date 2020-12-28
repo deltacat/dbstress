@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"time"
 
 	"github.com/deltacat/dbstress/runner"
@@ -9,22 +10,30 @@ import (
 )
 
 var caseCmd = &cobra.Command{
-	Use:   "cases [case[,case...]]",
+	Use:   "cases",
 	Short: "run predefined cases",
 	Long:  "",
 	Run:   runCases,
 }
 
+var (
+	casesToRunStr string
+)
+
 func init() {
 	rootCmd.AddCommand(caseCmd)
+
+	caseCmd.Flags().StringVarP(&casesToRunStr, "run", "r", "", "Select cases to run. Default all cases")
 }
 
 func runCases(cmd *cobra.Command, args []string) {
 	runner.Setup(tick, fast, quiet, kapacitorMode, cfg.Points, cfg.StatsRecord)
 	defer runner.Close()
 
-	runners := runner.BuildAllRunners(cfg)
-	logrus.WithField("found", len(cfg.Cases.Cases)).WithField("build", len(runners)).Infof("build runner from cases config, start run")
+	casesToRun := strings.Split(casesToRunStr, ",")
+
+	runners := runner.BuildAllRunners(cfg, casesToRun)
+	logrus.WithField("cases", casesToRun).WithField("build", len(runners)).Infof("build runner from cases config, start run")
 
 	delay := cfg.Cases.Delay
 	for i, r := range runners {

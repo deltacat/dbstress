@@ -12,6 +12,7 @@ import (
 	"github.com/deltacat/dbstress/data/mysql"
 	"github.com/deltacat/dbstress/report"
 	"github.com/deltacat/dbstress/stress"
+	"github.com/deltacat/dbstress/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -67,10 +68,15 @@ func Close() {
 }
 
 // BuildAllRunners build runner from cases config
-func BuildAllRunners(cfg config.Config) []Runner {
+func BuildAllRunners(cfg config.Config, filters []string) []Runner {
 	cfs := cfg.Cases.Cases
 	runners := []Runner{}
 	for _, cf := range cfs {
+		if len(filters) > 0 {
+			if !utils.ArrayContainsStringIgnoreCase(filters, cf.Name) {
+				continue
+			}
+		}
 		if strings.Contains(strings.ToLower(cf.Name), "influx") {
 			if cof, err := cfg.FindInfluxDBConnection(cf.Connection); err == nil {
 				if cli, err := client.NewInfluxClient(cof, ""); err == nil {
