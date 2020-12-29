@@ -14,11 +14,14 @@ import (
 )
 
 var (
-	layout                          mysql.Layout
-	dump                            string
-	seriesN                         int
 	concurrency, batchSize, pointsN uint64
-	runtime                         time.Duration
+
+	tick    time.Duration
+	fast    bool
+	layout  mysql.Layout
+	dump    string
+	seriesN int
+	runtime time.Duration
 )
 
 var insertCmd = &cobra.Command{
@@ -31,6 +34,8 @@ var insertCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(insertCmd)
 
+	insertCmd.Flags().DurationVarP(&tick, "tick", "", time.Second, "Amount of time between request")
+	insertCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Run as fast as possible")
 	insertCmd.Flags().IntVarP(&seriesN, "series", "s", 100000, "number of series that will be written")
 	insertCmd.Flags().Uint64VarP(&pointsN, "points", "n", math.MaxUint64, "number of points that will be written")
 	insertCmd.Flags().Uint64VarP(&batchSize, "batch-size", "b", 10000, "number of points in a batch")

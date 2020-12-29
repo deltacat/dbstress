@@ -3,6 +3,7 @@ package cmd
 import (
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/deltacat/dbstress/config"
 	"github.com/sirupsen/logrus"
@@ -85,4 +86,8 @@ func setDefaultConfig() {
 	viper.SetDefault("points.series-key", "some=tag")
 	viper.SetDefault("points.fields-str", "n=0i")
 	viper.SetDefault("points.series-num", 100000)
+
+	viper.SetDefault("cases.delay", time.Minute)
+	viper.SetDefault("cases.fast", true)
+	viper.SetDefault("cases.tick", time.Second)
 }

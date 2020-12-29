@@ -14,10 +14,7 @@ type Config struct {
 		MySQL    []MySQLClientConfig  `mapstructure:"mysql"`
 	} `mapstructure:"connection"`
 	Points PointsConfig `mapstructure:"points"`
-	Cases  struct {
-		Delay time.Duration `mapstructure:"delay"`
-		Cases []CaseConfig  `mapstructure:"case"`
-	} `mapstructure:"cases"`
+	Cases  CasesConfig  `mapstructure:"cases"`
 }
 
 // StatsRecordConfig stats record config
@@ -59,6 +56,14 @@ type PointsConfig struct {
 	FieldsStr   string `mapstructure:"fields-str"`
 	SeriesN     int    `mapstructure:"series-num"`
 	PointsN     uint64 `mapstructure:"points-num"`
+}
+
+// CasesConfig cases config
+type CasesConfig struct {
+	Delay time.Duration `mapstructure:"delay"`
+	Fast  bool          `mapstructure:"fast"`
+	Tick  time.Duration `mapstructure:"tick"`
+	Cases []CaseConfig  `mapstructure:"case"`
 }
 
 // CaseConfig test case config

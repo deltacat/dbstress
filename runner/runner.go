@@ -73,7 +73,8 @@ func Close() {
 func Report() {
 	if !quiet {
 		fmt.Printf("\nReport: =======>\n")
-		fmt.Printf("Use point template: %s %s <timestamp>\n\n", pointsCfg.SeriesKey, pointsCfg.FieldsStr)
+		fmt.Printf("Use point template: %s %s <timestamp>\n", pointsCfg.SeriesKey, pointsCfg.FieldsStr)
+		fmt.Printf("Use runner config: fast(%v) tick(%v)\n\n", fast, tick)
 		report.Render()
 		fmt.Println()
 	}
@@ -150,7 +151,7 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 			fmt.Sprintf("%d", r.concurrency),
 			fmt.Sprintf("%d", r.cfg.BatchSize),
 			fmt.Sprintf("%s", start.Local().Format("2006-01-02 15:04:05")),
-			fmt.Sprintf("%.3fs", r.totalTime.Seconds()),
+			fmt.Sprintf("%.0fs", r.totalTime.Seconds()),
 			fmt.Sprintf("%d", r.throughput),
 			fmt.Sprintf("%d", r.totalWritten)})
 	}
