@@ -1,5 +1,10 @@
 # change log
 
+## v0.2.2 2020-12-29
+
+- optimiz log
+- for cmd 'cases', move flag 'fast', 'tick' to cases config
+
 ## v0.2.1 2020-12-28
 
 - support select cases to run
