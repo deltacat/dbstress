@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -36,15 +37,27 @@ func runCases(cmd *cobra.Command, args []string) {
 	}
 
 	runners := runner.BuildAllRunners(cfg, casesToRun)
+	if len(runners) == 0 {
+		logrus.Warnln("no valid case to run")
+		return
+	}
+	defer runner.Report()
+
 	logrus.WithField("cases", casesToRun).WithField("build", len(runners)).Infof("build runner from cases config, start run")
 
 	delay := cfg.Cases.Delay
 	for i, r := range runners {
-		if i > 0 {
-			logrus.WithField("delay", delay).Info("finished case, delay for next")
+		logrus.WithFields(logrus.Fields(r.Info())).Infof("running case %d/%d", i+1, len(runners))
+		err := r.Run()
+		logger := logrus.WithFields(logrus.Fields(r.Result()))
+		if err != nil {
+			logger = logrus.WithError(errors.Unwrap(err))
+		}
+		if i == len(runners)-1 {
+			logger.Info("finished case")
+		} else {
+			logger.WithField("wait", delay).Info("finished case, wait a while before next")
 			<-time.Tick(delay)
 		}
-		logrus.WithFields(logrus.Fields(r.Info())).Info("running case")
-		r.Run()
 	}
 }

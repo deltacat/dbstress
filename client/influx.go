@@ -2,6 +2,7 @@ package client
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -41,6 +42,9 @@ func NewInfluxDbClient(cfg InfluxConfig) (Client, error) {
 			},
 		}
 	}
+	if err := checkHealth(cfg.URL); err != nil {
+		return nil, err
+	}
 	return &client{
 		url:        []byte(writeURLFromConfig(cfg)),
 		cfg:        cfg,
@@ -76,6 +80,25 @@ func (c *client) sendCmd(cmd string) error {
 		return fmt.Errorf(
 			"Bad status code during execute cmd (%s): %d, body: %s",
 			cmd, resp.StatusCode, string(body),
+		)
+	}
+
+	return nil
+}
+
+func checkHealth(host string) error {
+
+	resp, err := http.Get(host + "/health")
+	if err != nil {
+		return errors.Unwrap(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf(
+			"check host health failed, status code: %d, body: %s",
+			resp.StatusCode, string(body),
 		)
 	}
 

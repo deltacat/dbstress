@@ -28,13 +28,21 @@ var (
 // Runner runner interface
 type Runner interface {
 	Run() error
+
+	// Info return a map to print log
 	Info() map[string]interface{}
+	// Result return a map to print log
+	Result() map[string]interface{}
 }
 
 type caseRunner struct {
-	cli         client.Client
-	cfg         config.CaseConfig
-	concurrency int
+	cli client.Client
+	cfg config.CaseConfig
+
+	concurrency  int
+	totalTime    time.Duration
+	totalWritten uint64
+	throughput   uint64
 }
 
 type doWriteFunc func(resultChan chan stress.WriteResult) (uint64, error)
@@ -59,6 +67,10 @@ func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg confi
 
 // Close finish all runners
 func Close() {
+}
+
+// Report print report
+func Report() {
 	if !quiet {
 		fmt.Printf("\nReport: =======>\n")
 		fmt.Printf("Use point template: %s %s <timestamp>\n\n", pointsCfg.SeriesKey, pointsCfg.FieldsStr)
@@ -82,6 +94,8 @@ func BuildAllRunners(cfg config.Config, filters []string) []Runner {
 				if cli, err := client.NewInfluxClient(cof, ""); err == nil {
 					r := NewInfluxRunner(cli, cf)
 					runners = append(runners, &r)
+				} else {
+					logrus.WithError(err).Error("create runner failed")
 				}
 			}
 		} else if strings.Contains(strings.ToLower(cf.Name), "mysql") {
@@ -91,6 +105,8 @@ func BuildAllRunners(cfg config.Config, filters []string) []Runner {
 						r := NewMySQLRunner(cli, cf, layout)
 						runners = append(runners, &r)
 					}
+				} else {
+					logrus.WithError(err).Error("create runner failed")
 				}
 			}
 		}
@@ -115,16 +131,17 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 	start := time.Now()
 
 	totalWritten, err := doWrite(sink.Chan())
+	r.totalWritten = totalWritten
 
-	totalTime := time.Since(start)
+	r.totalTime = time.Since(start)
 	if err := r.cli.Close(); err != nil {
 		logrus.WithError(err).Error("Error closing client")
 	}
 
 	sink.Close()
-	throughput := int(float64(totalWritten) / totalTime.Seconds())
+	r.throughput = r.totalWritten / uint64(r.totalTime.Seconds())
 	if quiet {
-		fmt.Println(throughput)
+		fmt.Println(r.throughput)
 	} else {
 		report.Append([]string{
 			r.cfg.Name,
@@ -133,9 +150,9 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 			fmt.Sprintf("%d", r.concurrency),
 			fmt.Sprintf("%d", r.cfg.BatchSize),
 			fmt.Sprintf("%s", start.Local().Format("2006-01-02 15:04:05")),
-			fmt.Sprintf("%.3fs", totalTime.Seconds()),
-			fmt.Sprintf("%d", throughput),
-			fmt.Sprintf("%d", totalWritten)})
+			fmt.Sprintf("%.3fs", r.totalTime.Seconds()),
+			fmt.Sprintf("%d", r.throughput),
+			fmt.Sprintf("%d", r.totalWritten)})
 	}
 
 	return err
@@ -145,5 +162,13 @@ func (r *caseRunner) Info() map[string]interface{} {
 	return map[string]interface{}{
 		"name":       r.cfg.Name,
 		"connection": r.cli.Connection(),
+	}
+}
+
+func (r *caseRunner) Result() map[string]interface{} {
+	return map[string]interface{}{
+		"throughput":    r.throughput,
+		"total written": r.totalWritten,
+		"total runtime": r.totalTime.Round(time.Second),
 	}
 }
