@@ -1,5 +1,9 @@
 # change log
 
+## 0.3.0 2020-12-31
+
+- support influxdb v2
+
 ## v0.2.2 2020-12-29
 
 - optimiz log

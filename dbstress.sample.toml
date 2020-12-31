@@ -1,46 +1,43 @@
 [connection]
 
 [[connection.influxdb]]
-name = "Influx1.8 SSD" 
+name = "Influx1.x" 
 default = true 
-url = "http://127.0.0.1:18086" 
-user = "" 
-pass = "" 
-db = "stress" # Database that will be written to
+url = "http://127.0.0.1:8086" 
+api-version = 1
 tls-skip-verify = false # Skip verify in for TLS
-rp = "" # Retention Policy that will be written to
 precision = "n" # Resolution of data being written
 consistency = "one" # Write consistency (only applicable to clusters)
 gzip = -1 # If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.
 
+[connection.influxdb.v1]
+user = "" 
+pass = "" 
+db = "stress" # Database that will be written to
+rp = "" # Retention Policy that will be written to
+
+[[connection.influxdb]]
+name = "Influx2" 
+default = true 
+url = "http://127.0.0.1:8286" 
+api-version = 2
+tls-skip-verify = false # Skip verify in for TLS
+precision = "n" # Resolution of data being written
+consistency = "one" # Write consistency (only applicable to clusters)
+gzip = -1 # If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.
+
+[connection.influxdb.v2]
+token = "xxxxxxxxxxxxxxx" # ask your db admin
+org-id = "xxxxxxxxxxxxxxx" # ask your db admin
+bucket = "stress" # bucket that will be written to
+
 [[connection.mysql]]
-name = "MySQL8 SSD" # connection name
+name = "MySQL8" # connection name
 default = true # if this is default mysql connection
-host = "127.0.0.1:13308" # mysql host:port
+host = "127.0.0.1:3308" # mysql host:port
 user = "root" 
 pass = "docker" 
 db = "stress" # mysql db to write
-
-[[connection.influxdb]]
-name = "Influx1.8 HDD" 
-default = false 
-url = "http://127.0.0.1:28086" 
-user = "" 
-pass = "" 
-db = "stress" 
-tls-skip-verify = false
-rp = "" 
-precision = "n" 
-consistency = "one"
-gzip = -1 
-
-[[connection.mysql]]
-name = "MySQL8 HDD"
-default = false
-host = "127.0.0.1:23308"
-user = "root"
-pass = "docker"
-db = "stress"
 
 [points]
 measurement = "ctr"
@@ -51,31 +48,26 @@ fields-str = "n=0i,data=str,log=str"
 [cases]
 
 delay = "5s" # delay between cases
+fast = true
+tick = "1s"
 
 [[cases.case]]
-name = "Influx SSD"
-connection = "Influx1.8 SSD"
+name = "Influx1"
+connection = "Influx1.x"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
 
 [[cases.case]]
-name = "Influx HDD"
-connection = "Influx1.8 HDD"
+name = "Influx2"
+connection = "Influx2"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
 
 [[cases.case]]
-name = "MySQL SSD"
-connection = "MySQL8 SSD"
-concurrent = 20
-batch-size = 10000
-runtime = "30s"
-
-[[cases.case]]
-name = "MySQL HDD"
-connection = "MySQL8 HDD"
+name = "MySQL"
+connection = "MySQL8"
 concurrent = 20
 batch-size = 10000
 runtime = "30s"
