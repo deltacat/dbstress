@@ -26,17 +26,25 @@ type StatsRecordConfig struct {
 
 // InfluxClientConfig the influxdb client config struct
 type InfluxClientConfig struct {
-	Name            string `mapstructure:"name"`
-	Default         bool   `mapstructure:"default"`
-	URL             string `mapstructure:"url"`
-	Database        string `mapstructure:"db"`
-	RetentionPolicy string `mapstructure:"rp"`
-	User            string `mapstructure:"user"`
-	Pass            string `mapstructure:"pass"`
-	Precision       string `mapstructure:"precision"`
-	Consistency     string `mapstructure:"consistency"`
-	TLSSkipVerify   bool   `mapstructure:"tls-skip-verify"`
-	Gzip            int    `mapstructure:"gzip"`
+	Name          string `mapstructure:"name"`
+	Default       bool   `mapstructure:"default"`
+	URL           string `mapstructure:"url"`
+	Precision     string `mapstructure:"precision"`
+	Consistency   string `mapstructure:"consistency"`
+	TLSSkipVerify bool   `mapstructure:"tls-skip-verify"`
+	Gzip          int    `mapstructure:"gzip"`
+	APIVersion    int    `mapstructure:"api-version"`
+	V1            struct {
+		Database        string `mapstructure:"db"`
+		RetentionPolicy string `mapstructure:"rp"`
+		User            string `mapstructure:"user"`
+		Pass            string `mapstructure:"pass"`
+	} `mapstructure:"v1"`
+	V2 struct {
+		OrgID  string `mapstructure:"org-id"`
+		Bucket string `mapstructure:"bucket"`
+		Token  string `mapstructure:"token"`
+	} `mapstructure:"v2"`
 }
 
 // MySQLClientConfig mysql client config

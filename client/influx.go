@@ -6,34 +6,32 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/deltacat/dbstress/utils"
 	"github.com/valyala/fasthttp"
 )
 
-type client struct {
-	url []byte
+type influxClient struct {
+	// preset fields
+	name    string
+	baseURL string
+	token   string
+	gzip    int
 
-	cfg InfluxConfig
-
+	// built out fields
 	httpClient *fasthttp.Client
+	writeURL   []byte
 }
 
 // NewInfluxClient return new influx (db/file) client instance
 func NewInfluxClient(cfg InfluxConfig, dump string) (Client, error) {
+	// return file client
 	if dump != "" {
-		return NewInfluxFileClient(dump, cfg)
+		return newInfluxFileClient(dump, cfg)
 	}
-	return NewInfluxDbClient(cfg)
-}
 
-// NewInfluxDbClient create a new influxdb client instance
-func NewInfluxDbClient(cfg InfluxConfig) (Client, error) {
 	var httpClient *fasthttp.Client
 	if cfg.TLSSkipVerify {
 		httpClient = &fasthttp.Client{
@@ -45,49 +43,17 @@ func NewInfluxDbClient(cfg InfluxConfig) (Client, error) {
 	if err := checkHealth(cfg.URL); err != nil {
 		return nil, err
 	}
-	return &client{
-		url:        []byte(writeURLFromConfig(cfg)),
-		cfg:        cfg,
-		httpClient: httpClient,
-	}, nil
-}
 
-func (c *client) Create(command string) error {
-	if command == "" {
-		command = "CREATE DATABASE " + c.cfg.Database
-	}
-	return c.sendCmd(command)
-}
-
-func (c *client) sendCmd(cmd string) error {
-	vals := url.Values{}
-	vals.Set("q", cmd)
-	u, err := url.Parse(c.cfg.URL)
-	if err != nil {
-		return err
-	}
-	if c.cfg.User != "" && c.cfg.Pass != "" {
-		u.User = url.UserPassword(c.cfg.User, c.cfg.Pass)
-	}
-	resp, err := http.PostForm(u.String()+"/query", vals)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return fmt.Errorf(
-			"Bad status code during execute cmd (%s): %d, body: %s",
-			cmd, resp.StatusCode, string(body),
-		)
+	// return v2 client
+	if cfg.APIVersion == 2 {
+		return newInfluxDbV2Client(cfg, httpClient), nil
 	}
 
-	return nil
+	// return v1 client
+	return newInfluxDbV1Client(cfg, httpClient), nil
 }
 
 func checkHealth(host string) error {
-
 	resp, err := http.Get(host + "/health")
 	if err != nil {
 		return errors.Unwrap(err)
@@ -105,12 +71,15 @@ func checkHealth(host string) error {
 	return nil
 }
 
-func (c *client) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
+func (c *influxClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
 	req := fasthttp.AcquireRequest()
 	req.Header.SetContentTypeBytes([]byte("text/plain"))
 	req.Header.SetMethodBytes([]byte("POST"))
-	req.Header.SetRequestURIBytes(c.url)
-	if c.cfg.Gzip != 0 {
+	req.Header.SetRequestURIBytes(c.writeURL)
+	if c.token != "" {
+		req.Header.Add("Authorization", "Token "+c.token)
+	}
+	if c.gzip != 0 {
 		req.Header.SetBytesKV([]byte("Content-Encoding"), []byte("gzip"))
 	}
 	req.Header.SetContentLength(len(b))
@@ -139,139 +108,24 @@ func (c *client) Send(b []byte) (latNs int64, statusCode int, body string, err e
 	return
 }
 
-func (c *client) SendString(string) (latNs int64, statusCode int, body string, err error) {
+func (c *influxClient) SendString(string) (latNs int64, statusCode int, body string, err error) {
 	return 0, 0, "", utils.ErrNotSupport
 }
 
-func (c *client) Close() error {
+func (c *influxClient) Close() error {
 	// Nothing to do.
 	return nil
 }
 
-func (c *client) Reset() error {
-	return c.sendCmd("DROP DATABASE " + c.cfg.Database)
+func (c *influxClient) Name() string {
+	return c.name
 }
 
-func (c *client) Name() string {
-	return c.cfg.Name
-}
-
-func (c *client) Connection() string {
-	ps := strings.Split(c.cfg.URL, "//")
+func (c *influxClient) Connection() string {
+	ps := strings.Split(c.baseURL, "//")
 	return ps[len(ps)-1]
 }
 
-func (c *client) GzipLevel() int {
-	return c.cfg.Gzip
-}
-
-type influxFileClient struct {
-	database string
-
-	mu    sync.Mutex
-	f     *os.File
-	path  string
-	batch uint
-}
-
-// NewInfluxFileClient create a file client for influxdb
-func NewInfluxFileClient(path string, cfg InfluxConfig) (Client, error) {
-	c := &influxFileClient{
-		path: path,
-	}
-
-	var err error
-	c.f, err = os.Create(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := c.f.WriteString("# " + writeURLFromConfig(cfg) + "\n"); err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
-func (c *influxFileClient) Create(command string) error {
-	if command == "" {
-		command = "CREATE DATABASE " + c.database
-	}
-	c.mu.Lock()
-	_, err := fmt.Fprintf(c.f, "# create: %s\n\n", command)
-	c.mu.Unlock()
-	return err
-}
-
-func (c *influxFileClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	statusCode = -1
-	start := time.Now()
-	defer func() {
-		latNs = time.Since(start).Nanoseconds()
-	}()
-
-	c.batch++
-	if _, err = fmt.Fprintf(c.f, "# Batch %d:\n", c.batch); err != nil {
-		return
-	}
-
-	if _, err = c.f.Write(b); err != nil {
-		return
-	}
-
-	if _, err = c.f.Write([]byte{'\n'}); err != nil {
-		return
-	}
-
-	statusCode = 204
-	return
-}
-
-func (c *influxFileClient) SendString(string) (latNs int64, statusCode int, body string, err error) {
-	return 0, 0, "", utils.ErrNotSupport
-}
-
-func (c *influxFileClient) Close() error {
-	return c.f.Close()
-}
-
-func (c *influxFileClient) Reset() error {
-	return utils.ErrNotImplemented
-}
-
-func (c *influxFileClient) Name() string {
-	return "InfluxFile"
-}
-
-func (c *influxFileClient) Connection() string {
-	return c.path
-}
-
-func (c *influxFileClient) GzipLevel() int {
-	return 0
-}
-
-func writeURLFromConfig(cfg InfluxConfig) string {
-	params := url.Values{}
-	params.Set("db", cfg.Database)
-	if cfg.User != "" {
-		params.Set("u", cfg.User)
-	}
-	if cfg.Pass != "" {
-		params.Set("p", cfg.Pass)
-	}
-	if cfg.RetentionPolicy != "" {
-		params.Set("rp", cfg.RetentionPolicy)
-	}
-	if cfg.Precision != "n" && cfg.Precision != "" {
-		params.Set("precision", cfg.Precision)
-	}
-	if cfg.Consistency != "one" && cfg.Consistency != "" {
-		params.Set("consistency", cfg.Consistency)
-	}
-
-	return cfg.URL + "/write?" + params.Encode()
+func (c *influxClient) GzipLevel() int {
+	return c.gzip
 }

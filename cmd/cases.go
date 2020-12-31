@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"strings"
 	"time"
 
@@ -51,7 +50,7 @@ func runCases(cmd *cobra.Command, args []string) {
 		err := r.Run()
 		logger := logrus.WithFields(logrus.Fields(r.Result()))
 		if err != nil {
-			logger = logrus.WithError(errors.Unwrap(err))
+			logger = logrus.WithError(err)
 		}
 		if i == len(runners)-1 {
 			logger.Info("finished case")

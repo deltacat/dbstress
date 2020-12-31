@@ -152,15 +152,16 @@ type InfluxDBSink struct {
 // NewInfluxDBSink create a new InfluxDBSink instance
 func NewInfluxDBSink(nWriters int, url, db string) *InfluxDBSink {
 	cfg := client.InfluxConfig{
-		URL:             url,
-		Database:        db,
-		RetentionPolicy: "autogen",
-		Precision:       "ns",
-		Consistency:     "any",
-		Gzip:            0,
+		URL:         url,
+		APIVersion:  1,
+		Precision:   "ns",
+		Consistency: "any",
+		Gzip:        0,
 	}
+	cfg.V1.Database = db
+	cfg.V1.RetentionPolicy = "autogen"
 
-	cli, _ := client.NewInfluxDbClient(cfg)
+	cli, _ := client.NewInfluxClient(cfg, "")
 
 	return &InfluxDBSink{
 		Ch:     make(chan WriteResult, 8*nWriters),
