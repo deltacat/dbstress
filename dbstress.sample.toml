@@ -46,10 +46,10 @@ fields-str = "n=0i,data=str,log=str"
 
 # pending cases to run
 [cases]
-
 delay = "5s" # delay between cases
 fast = true
 tick = "1s"
+cases-filter = []
 
 [[cases.case]]
 name = "Influx1"

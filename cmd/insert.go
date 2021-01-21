@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/deltacat/dbstress/client"
-	"github.com/deltacat/dbstress/config"
+	"github.com/deltacat/dbstress/csv"
 	"github.com/deltacat/dbstress/data/mysql"
 	"github.com/deltacat/dbstress/runner"
 	"github.com/sirupsen/logrus"
@@ -101,12 +101,12 @@ func insertMysql() error {
 		return err
 	}
 
-	cs := config.CaseConfig{
+	cs := runner.CaseConfig{
 		Name:       "Insert MySQL",
 		Connection: cc.Name,
 		Concurrent: int(concurrency),
 		BatchSize:  int(batchSize),
-		Runtime:    runtime,
+		Runtime:    csv.Duration{Duration: runtime},
 	}
 
 	r := runner.NewMySQLRunner(cli, cs, layout)
@@ -127,12 +127,12 @@ func insertInflux() error {
 		}
 	}
 
-	cs := config.CaseConfig{
+	cs := runner.CaseConfig{
 		Name:       "Insert Influx",
 		Connection: cc.Name,
 		Concurrent: int(concurrency),
 		BatchSize:  int(batchSize),
-		Runtime:    runtime,
+		Runtime:    csv.Duration{Duration: runtime},
 	}
 	r := runner.NewInfluxRunner(cli, cs)
 

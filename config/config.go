@@ -1,7 +1,9 @@
 // Package config ...
 package config
 
-import "time"
+import (
+	"time"
+)
 
 // Cfg global config holder
 var Cfg Config
@@ -68,17 +70,9 @@ type PointsConfig struct {
 
 // CasesConfig cases config
 type CasesConfig struct {
-	Delay time.Duration `mapstructure:"delay"`
-	Fast  bool          `mapstructure:"fast"`
-	Tick  time.Duration `mapstructure:"tick"`
-	Cases []CaseConfig  `mapstructure:"case"`
-}
-
-// CaseConfig test case config
-type CaseConfig struct {
-	Name       string        `mapstructure:"name"`
-	Connection string        `mapstructure:"connection"`
-	Concurrent int           `mapstructure:"concurrent"`
-	BatchSize  int           `mapstructure:"batch-size"`
-	Runtime    time.Duration `mapstructure:"runtime"`
+	Delay       time.Duration `mapstructure:"delay"`
+	Fast        bool          `mapstructure:"fast"`
+	Tick        time.Duration `mapstructure:"tick"`
+	CasesFile   string        `mapstructure:"cases-file"`
+	CasesFilter []string      `mapstructure:"cases-filter"`
 }

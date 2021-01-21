@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/deltacat/dbstress/client"
-	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/data/mysql"
 	"github.com/deltacat/dbstress/stress"
 )
@@ -18,7 +17,7 @@ type MySQLRunner struct {
 }
 
 // NewMySQLRunner create a new mysql runner instance
-func NewMySQLRunner(cli client.Client, cs config.CaseConfig, layout mysql.Layout) MySQLRunner {
+func NewMySQLRunner(cli client.Client, cs CaseConfig, layout mysql.Layout) MySQLRunner {
 	return MySQLRunner{
 		caseRunner: caseRunner{
 			cli:         cli,
@@ -55,17 +54,11 @@ func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, 
 		go func(startSplit, endSplit int) {
 			tbl := mysql.NewTableChunk(r.layout, uint64(r.cfg.BatchSize))
 
-			tick := time.Tick(tick)
-
-			if fast {
-				tick = time.Tick(time.Nanosecond)
-			}
-
 			cfg := stress.WriteConfig{
 				BatchSize: uint64(r.cfg.BatchSize),
 				MaxPoints: pointsN / uint64(r.concurrency), // divide by concurreny
-				Deadline:  time.Now().Add(r.cfg.Runtime),
-				Tick:      tick,
+				Deadline:  time.Now().Add(r.cfg.Runtime.Duration),
+				Tick:      time.Tick(tick),
 				Results:   resultChan,
 			}
 

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/deltacat/dbstress/client"
-	"github.com/deltacat/dbstress/config"
 	"github.com/deltacat/dbstress/data/influx/lineprotocol"
 	"github.com/deltacat/dbstress/data/influx/point"
 	"github.com/deltacat/dbstress/stress"
@@ -18,7 +17,7 @@ type InfluxRunner struct {
 }
 
 // NewInfluxRunner create a new mysql runner instance
-func NewInfluxRunner(cli client.Client, cs config.CaseConfig) InfluxRunner {
+func NewInfluxRunner(cli client.Client, cs CaseConfig) InfluxRunner {
 	return InfluxRunner{
 		caseRunner: caseRunner{
 			cli:         cli,
@@ -55,18 +54,12 @@ func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64
 	for i := uint64(0); i < uint64(r.concurrency); i++ {
 
 		go func(startSplit, endSplit int) {
-			tick := time.Tick(tick)
-
-			if fast {
-				tick = time.Tick(time.Nanosecond)
-			}
-
 			cfg := stress.WriteConfig{
 				BatchSize: uint64(r.cfg.BatchSize),
 				MaxPoints: pointsN / uint64(r.concurrency), // divide by concurreny
 				GzipLevel: r.cli.GzipLevel(),
-				Deadline:  time.Now().Add(r.cfg.Runtime),
-				Tick:      tick,
+				Deadline:  time.Now().Add(r.cfg.Runtime.Duration),
+				Tick:      time.Tick(tick),
 				Results:   resultChan,
 			}
 

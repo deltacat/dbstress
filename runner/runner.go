@@ -37,7 +37,7 @@ type Runner interface {
 
 type caseRunner struct {
 	cli client.Client
-	cfg config.CaseConfig
+	cfg CaseConfig
 
 	concurrency  int
 	totalTime    time.Duration
@@ -49,8 +49,12 @@ type doWriteFunc func(resultChan chan stress.WriteResult) (uint64, error)
 
 // Setup runner context
 func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg config.PointsConfig, statsCfg config.StatsRecordConfig) {
-	tick = _tick
 	fast = _fast
+	if fast {
+		tick = time.Nanosecond
+	} else {
+		tick = _tick
+	}
 	quiet = _quiet
 	kapacitorMode = _kapacitorMode
 	recordStats = statsCfg.Enable
@@ -81,8 +85,7 @@ func Report() {
 }
 
 // BuildAllRunners build runner from cases config
-func BuildAllRunners(cfg config.Config, filters []string) []Runner {
-	cfs := cfg.Cases.Cases
+func BuildAllRunners(cfg config.Config, cfs []CaseConfig, filters []string) []Runner {
 	runners := []Runner{}
 	for _, cf := range cfs {
 		if len(filters) > 0 {

@@ -2,3 +2,4 @@
 build/
 dist/
 dbstress.toml
+cases.csv

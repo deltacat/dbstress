@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deltacat/dbstress/csv"
 	"github.com/deltacat/dbstress/runner"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,9 +34,11 @@ func runCases(cmd *cobra.Command, args []string) {
 	casesToRun := []string{}
 	if casesToRunStr != "" {
 		casesToRun = strings.Split(casesToRunStr, ",")
+	} else {
+		casesToRun = cfg.Cases.CasesFilter
 	}
 
-	runners := runner.BuildAllRunners(cfg, casesToRun)
+	runners := runner.BuildAllRunners(cfg, loadCases(), casesToRun)
 	if len(runners) == 0 {
 		logrus.Warnln("no valid case to run")
 		return
@@ -59,4 +62,10 @@ func runCases(cmd *cobra.Command, args []string) {
 			<-time.Tick(delay)
 		}
 	}
+}
+
+func loadCases() []runner.CaseConfig {
+	cases := []runner.CaseConfig{}
+	csv.Parse("./cases.csv", &cases)
+	return cases
 }
