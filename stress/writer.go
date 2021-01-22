@@ -39,11 +39,12 @@ type WriteConfig struct {
 // to write data to the target until one of the following conditions is met.
 // 1. We reach that MaxPoints specified in the WriteConfig.
 // 2. We've passed the Deadline specified in the WriteConfig.
-func WriteInflux(pts []lineprotocol.Point, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
+func WriteInflux(pts []lineprotocol.Point, c client.Client, cfg WriteConfig) (uint64, uint64, time.Duration) {
 	if cfg.Results == nil {
 		panic("Results Channel on WriteConfig cannot be nil")
 	}
 	var pointCount uint64
+	var failedCount uint64
 
 	start := time.Now()
 	buf := bytes.NewBuffer(nil)
@@ -85,7 +86,10 @@ WRITE_BATCHES:
 						panic(err)
 					}
 				}
-				sendBatchInflux(c, buf, cfg.Results)
+				if err := sendBatchInflux(c, buf, cfg.Results); err != nil {
+					failedCount += cfg.BatchSize
+				}
+
 				if doGzip {
 					// sendBatch already reset the bytes buffer.
 					// Reset the gzip writer to start clean.
@@ -113,27 +117,29 @@ WRITE_BATCHES:
 		t = t.Add(1 * time.Nanosecond)
 	}
 
-	return pointCount, time.Since(start)
+	return pointCount, failedCount, time.Since(start)
 }
 
-func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) {
+func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) error {
 	lat, status, body, err := c.Send(buf.Bytes())
 	buf.Reset()
 	select {
 	case ch <- WriteResult{LatNs: lat, StatusCode: status, Body: body, Err: err, Timestamp: time.Now().UnixNano()}:
 	default:
 	}
+	return err
 }
 
 // WriteMySQL writes rows into mysql.
 // Simlar as influx processing, it will attempt to write data to the target until one of the following conditions is met.
 // 1. We reach that MaxPoints specified in the WriteConfig.
 // 2. We've passed the Deadline specified in the WriteConfig.
-func WriteMySQL(table mysql.TableChunk, c client.Client, cfg WriteConfig) (uint64, time.Duration) {
+func WriteMySQL(table mysql.TableChunk, c client.Client, cfg WriteConfig) (uint64, uint64, time.Duration) {
 	if cfg.Results == nil {
 		panic("Results Channel on WriteConfig cannot be nil")
 	}
 	var pointCount uint64
+	var failedCount uint64
 
 	start := time.Now()
 	t := time.Now()
@@ -147,8 +153,9 @@ func WriteMySQL(table mysql.TableChunk, c client.Client, cfg WriteConfig) (uint6
 		}
 		pointCount += table.GetRowsNum()
 
-		sendBatchMySQL(c, table.GenInsertStmt(), cfg.Results)
-
+		if err := sendBatchMySQL(c, table.GenInsertStmt(), cfg.Results); err != nil {
+			failedCount += table.GetRowsNum()
+		}
 		t = <-cfg.Tick
 
 		// Avoid timestamp colision when batch size > pts
@@ -159,13 +166,14 @@ func WriteMySQL(table mysql.TableChunk, c client.Client, cfg WriteConfig) (uint6
 		t = t.Add(1 * time.Nanosecond)
 	}
 
-	return pointCount, time.Since(start)
+	return pointCount, failedCount, time.Since(start)
 }
 
-func sendBatchMySQL(c client.Client, query string, ch chan<- WriteResult) {
+func sendBatchMySQL(c client.Client, query string, ch chan<- WriteResult) error {
 	lat, status, body, err := c.SendString(query)
 	select {
 	case ch <- WriteResult{LatNs: lat, StatusCode: status, Body: body, Err: err, Timestamp: time.Now().UnixNano()}:
 	default:
 	}
+	return err
 }

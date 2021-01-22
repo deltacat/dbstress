@@ -39,13 +39,14 @@ func (r *InfluxRunner) Run() error {
 	return r.doInsert(r.doWriteInflux)
 }
 
-func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64, error) {
+func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64, uint64, error) {
 	var wg sync.WaitGroup
 	wg.Add(r.concurrency)
 
 	seriesN := pointsCfg.SeriesN
 
 	var totalWritten uint64
+	var totalFailed uint64
 	startSplit := 0
 	inc := int(seriesN) / int(r.concurrency)
 	endSplit := inc
@@ -64,8 +65,9 @@ func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64
 			}
 
 			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteInflux(pts[startSplit:endSplit], r.cli, cfg)
+			pointsWritten, pointsFailed, _ := stress.WriteInflux(pts[startSplit:endSplit], r.cli, cfg)
 			atomic.AddUint64(&totalWritten, pointsWritten)
+			atomic.AddUint64(&totalFailed, pointsFailed)
 
 			wg.Done()
 		}(startSplit, endSplit)
@@ -76,5 +78,5 @@ func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64
 
 	wg.Wait()
 
-	return totalWritten, nil
+	return totalWritten, totalFailed, nil
 }

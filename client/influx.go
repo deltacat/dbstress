@@ -96,6 +96,9 @@ func (c *influxClient) Send(b []byte) (latNs int64, statusCode int, body string,
 	err = do(req, resp)
 	latNs = time.Since(start).Nanoseconds()
 	statusCode = resp.StatusCode()
+	if statusCode >= http.StatusBadRequest {
+		err = errors.New(http.StatusText(statusCode))
+	}
 
 	// Save the body.
 	if statusCode != http.StatusNoContent {

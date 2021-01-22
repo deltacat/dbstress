@@ -42,10 +42,11 @@ type caseRunner struct {
 	concurrency  int
 	totalTime    time.Duration
 	totalWritten uint64
+	totalFailed  uint64
 	throughput   uint64
 }
 
-type doWriteFunc func(resultChan chan stress.WriteResult) (uint64, error)
+type doWriteFunc func(resultChan chan stress.WriteResult) (uint64, uint64, error)
 
 // Setup runner context
 func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg config.PointsConfig, statsCfg config.StatsRecordConfig) {
@@ -66,7 +67,7 @@ func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg confi
 	} else {
 		pointsN = pointsCfg.PointsN
 	}
-	report.SetHeader([]string{"case", "connection", "action", "concur", "batch", "start", "run", "throughput", "points"})
+	report.SetHeader([]string{"case", "connection", "action", "concur", "batch", "start", "run", "throughput", "points", "failed"})
 }
 
 // Close finish all runners
@@ -134,8 +135,9 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 
 	start := time.Now()
 
-	totalWritten, err := doWrite(sink.Chan())
+	totalWritten, totalFailed, err := doWrite(sink.Chan())
 	r.totalWritten = totalWritten
+	r.totalFailed = totalFailed
 
 	r.totalTime = time.Since(start)
 	if err := r.cli.Close(); err != nil {
@@ -143,7 +145,7 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 	}
 
 	sink.Close()
-	r.throughput = r.totalWritten / uint64(r.totalTime.Seconds())
+	r.throughput = (r.totalWritten - r.totalFailed) / uint64(r.totalTime.Seconds())
 	if quiet {
 		fmt.Println(r.throughput)
 	} else {
@@ -156,7 +158,8 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 			fmt.Sprintf("%s", start.Local().Format("2006-01-02 15:04:05")),
 			fmt.Sprintf("%.0fs", r.totalTime.Seconds()),
 			fmt.Sprintf("%d", r.throughput),
-			fmt.Sprintf("%d", r.totalWritten)})
+			fmt.Sprintf("%d", r.totalWritten),
+			fmt.Sprintf("%d", r.totalFailed)})
 	}
 
 	return err

@@ -37,7 +37,7 @@ func (r *MySQLRunner) Run() error {
 	return r.doInsert(r.doWriteMysql)
 }
 
-func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, error) {
+func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, uint64, error) {
 
 	var wg sync.WaitGroup
 	wg.Add(int(r.concurrency))
@@ -45,6 +45,7 @@ func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, 
 	seriesN := pointsCfg.SeriesN
 
 	totalWritten := uint64(0)
+	totalFailed := uint64(0)
 	startSplit := 0
 	inc := int(seriesN) / int(r.concurrency)
 	endSplit := inc
@@ -63,8 +64,9 @@ func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, 
 			}
 
 			// Ignore duration from a single call to Write.
-			pointsWritten, _ := stress.WriteMySQL(tbl, r.cli, cfg)
+			pointsWritten, pointsFailed, _ := stress.WriteMySQL(tbl, r.cli, cfg)
 			atomic.AddUint64(&totalWritten, pointsWritten)
+			atomic.AddUint64(&totalFailed, pointsFailed)
 
 			wg.Done()
 		}(startSplit, endSplit)
@@ -75,5 +77,5 @@ func (r *MySQLRunner) doWriteMysql(resultChan chan stress.WriteResult) (uint64, 
 
 	wg.Wait()
 
-	return totalWritten, nil
+	return totalWritten, totalFailed, nil
 }
