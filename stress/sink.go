@@ -156,7 +156,6 @@ func NewInfluxDBSink(nWriters int, url, db string) *InfluxDBSink {
 		APIVersion:  1,
 		Precision:   "ns",
 		Consistency: "any",
-		Gzip:        0,
 	}
 	cfg.V1.Database = db
 	cfg.V1.RetentionPolicy = "autogen"
@@ -195,7 +194,7 @@ func (s *InfluxDBSink) run() {
 		select {
 		case <-s.ticker.C:
 			// Write batch
-			s.client.Send(s.buf.Bytes())
+			s.client.Send(s.buf.Bytes(), 0)
 			s.buf.Reset()
 		case result := <-s.Ch:
 			// Add to batch

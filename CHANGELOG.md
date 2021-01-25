@@ -1,5 +1,11 @@
 # change log
 
+## 0.4.0 2021-01-25
+
+- 吞吐量排除错误数据
+- cases 移入 csv 文件
+- gzip 改为 case 参数
+
 ## 0.3.0 2020-12-31
 
 - support influxdb v2

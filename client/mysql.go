@@ -67,7 +67,7 @@ func (c *mysqlClient) Create(command string) error {
 	return err
 }
 
-func (c *mysqlClient) Send([]byte) (latNs int64, statusCode int, body string, err error) {
+func (c *mysqlClient) Send([]byte, int) (latNs int64, statusCode int, body string, err error) {
 	return 0, 0, "", utils.ErrNotSupport
 }
 

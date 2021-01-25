@@ -23,7 +23,6 @@ func newInfluxDbV1Client(cfg InfluxConfig, httpClient *fasthttp.Client) *influxC
 		influxClient: influxClient{
 			name:       cfg.Name,
 			baseURL:    cfg.URL,
-			gzip:       cfg.Gzip,
 			httpClient: httpClient,
 			writeURL:   []byte(writeURLFromConfigV1(cfg)),
 		},

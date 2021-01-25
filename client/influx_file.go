@@ -47,7 +47,7 @@ func (c *influxFileClient) Create(command string) error {
 	return err
 }
 
-func (c *influxFileClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
+func (c *influxFileClient) Send(b []byte, _ int) (latNs int64, statusCode int, body string, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -92,8 +92,4 @@ func (c *influxFileClient) Name() string {
 
 func (c *influxFileClient) Connection() string {
 	return c.path
-}
-
-func (c *influxFileClient) GzipLevel() int {
-	return 0
 }

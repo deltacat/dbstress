@@ -67,7 +67,7 @@ func Setup(_tick time.Duration, _fast, _quiet, _kapacitorMode bool, ptsCfg confi
 	} else {
 		pointsN = pointsCfg.PointsN
 	}
-	report.SetHeader([]string{"case", "connection", "action", "concur", "batch", "start", "run", "throughput", "points", "failed"})
+	report.SetHeader([]string{"case", "connection", "action", "concur", "batch", "gzip", "start", "run", "throughput", "points", "failed"})
 }
 
 // Close finish all runners
@@ -155,6 +155,7 @@ func (r *caseRunner) doInsert(doWrite doWriteFunc) error {
 			"insert",
 			fmt.Sprintf("%d", r.concurrency),
 			fmt.Sprintf("%d", r.cfg.BatchSize),
+			fmt.Sprintf("%d", r.cfg.Gzip),
 			fmt.Sprintf("%s", start.Local().Format("2006-01-02 15:04:05")),
 			fmt.Sprintf("%.0fs", r.totalTime.Seconds()),
 			fmt.Sprintf("%d", r.throughput),

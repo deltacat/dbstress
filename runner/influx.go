@@ -58,7 +58,7 @@ func (r *InfluxRunner) doWriteInflux(resultChan chan stress.WriteResult) (uint64
 			cfg := stress.WriteConfig{
 				BatchSize: uint64(r.cfg.BatchSize),
 				MaxPoints: pointsN / uint64(r.concurrency), // divide by concurreny
-				GzipLevel: r.cli.GzipLevel(),
+				GzipLevel: r.cfg.Gzip,
 				Deadline:  time.Now().Add(r.cfg.Runtime.Duration),
 				Tick:      time.Tick(tick),
 				Results:   resultChan,

@@ -86,7 +86,7 @@ WRITE_BATCHES:
 						panic(err)
 					}
 				}
-				if err := sendBatchInflux(c, buf, cfg.Results); err != nil {
+				if err := sendBatchInflux(c, buf, cfg.GzipLevel, cfg.Results); err != nil {
 					failedCount += cfg.BatchSize
 				}
 
@@ -120,8 +120,8 @@ WRITE_BATCHES:
 	return pointCount, failedCount, time.Since(start)
 }
 
-func sendBatchInflux(c client.Client, buf *bytes.Buffer, ch chan<- WriteResult) error {
-	lat, status, body, err := c.Send(buf.Bytes())
+func sendBatchInflux(c client.Client, buf *bytes.Buffer, gzip int, ch chan<- WriteResult) error {
+	lat, status, body, err := c.Send(buf.Bytes(), gzip)
 	buf.Reset()
 	select {
 	case ch <- WriteResult{LatNs: lat, StatusCode: status, Body: body, Err: err, Timestamp: time.Now().UnixNano()}:

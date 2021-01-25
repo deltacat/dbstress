@@ -34,7 +34,6 @@ type InfluxClientConfig struct {
 	Precision     string `mapstructure:"precision"`
 	Consistency   string `mapstructure:"consistency"`
 	TLSSkipVerify bool   `mapstructure:"tls-skip-verify"`
-	Gzip          int    `mapstructure:"gzip"`
 	APIVersion    int    `mapstructure:"api-version"`
 	V1            struct {
 		Database        string `mapstructure:"db"`

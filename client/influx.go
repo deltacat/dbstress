@@ -18,7 +18,6 @@ type influxClient struct {
 	name    string
 	baseURL string
 	token   string
-	gzip    int
 
 	// built out fields
 	httpClient *fasthttp.Client
@@ -71,7 +70,7 @@ func checkHealth(host string) error {
 	return nil
 }
 
-func (c *influxClient) Send(b []byte) (latNs int64, statusCode int, body string, err error) {
+func (c *influxClient) Send(b []byte, gzip int) (latNs int64, statusCode int, body string, err error) {
 	req := fasthttp.AcquireRequest()
 	req.Header.SetContentTypeBytes([]byte("text/plain"))
 	req.Header.SetMethodBytes([]byte("POST"))
@@ -79,7 +78,7 @@ func (c *influxClient) Send(b []byte) (latNs int64, statusCode int, body string,
 	if c.token != "" {
 		req.Header.Add("Authorization", "Token "+c.token)
 	}
-	if c.gzip != 0 {
+	if gzip != 0 {
 		req.Header.SetBytesKV([]byte("Content-Encoding"), []byte("gzip"))
 	}
 	req.Header.SetContentLength(len(b))
@@ -127,8 +126,4 @@ func (c *influxClient) Name() string {
 func (c *influxClient) Connection() string {
 	ps := strings.Split(c.baseURL, "//")
 	return ps[len(ps)-1]
-}
-
-func (c *influxClient) GzipLevel() int {
-	return c.gzip
 }

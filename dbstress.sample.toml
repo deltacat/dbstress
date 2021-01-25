@@ -8,7 +8,6 @@ api-version = 1
 tls-skip-verify = false # Skip verify in for TLS
 precision = "n" # Resolution of data being written
 consistency = "one" # Write consistency (only applicable to clusters)
-gzip = -1 # If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.
 
 [connection.influxdb.v1]
 user = "" 
@@ -24,7 +23,6 @@ api-version = 2
 tls-skip-verify = false # Skip verify in for TLS
 precision = "n" # Resolution of data being written
 consistency = "one" # Write consistency (only applicable to clusters)
-gzip = -1 # If non-zero, gzip write bodies with given compression level. 1=best speed, 9=best compression, -1=gzip default.
 
 [connection.influxdb.v2]
 token = "xxxxxxxxxxxxxxx" # ask your db admin
